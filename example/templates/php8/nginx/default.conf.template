@@ -1,0 +1,40 @@
+server {
+    listen 80;
+    server_name _ default;
+    root /var/www/public;
+    resolver 127.0.0.11;
+
+    index index.php;
+    charset utf-8;
+
+    client_max_body_size 500M;
+    large_client_header_buffers 4 16k;
+    client_body_buffer_size 32K;
+    client_header_buffer_size 2k;
+    http2_max_header_size 512k;
+    http2_max_field_size 256k;
+    disable_symlinks off;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    error_page 404 /index.php;
+
+    location ~ \.php$ {
+        fastcgi_pass 127.0.0.1:9000;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+        fastcgi_read_timeout 3600s;
+    }
+
+    location /api-docs {
+        # kill cache
+        add_header Last-Modified $date_gmt;
+        add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
+        if_modified_since off;
+        expires off;
+        etag off;
+    }
+}

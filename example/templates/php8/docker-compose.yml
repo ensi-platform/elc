@@ -1,0 +1,20 @@
+services:
+  app:
+    image: $PHP_IMAGE
+    hostname: "$APP_NAME.$BASE_DOMAIN"
+    volumes:
+      - "$SVC_PATH:/var/www"
+    networks:
+      - dev
+  nginx:
+    image: $NGINX_IMAGE
+    volumes:
+      - "$TPL_PATH/nginx/default.conf.template:/etc/nginx/conf.d/default.conf"
+    network_mode: "service:app"
+    depends_on:
+      - app
+
+networks:
+  dev:
+    external: true
+    name: $NETWORK
