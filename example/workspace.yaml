@@ -5,15 +5,16 @@ variables:
 
 templates:
   - name: php8
-    path: /home/madridianfox/work/ensi/runtime/elc-go/example/templates/php8
-    compose_file: /home/madridianfox/work/ensi/runtime/elc-go/example/templates/php8/docker-compose.yml
+    path: {{.WorkspacePath}}/templates/php8
+    compose_file: {{.WorkspacePath}}/templates/php8/docker-compose.yml
     variables:
-      PHP_IMAGE: php:8.1-fpm-alpine
+      BASE_IMAGE: php:8.1-fpm-alpine 
+      APP_IMAGE: php8:latest
       NGINX_IMAGE: nginx:1.19-alpine
 
 services: 
   - name: crm
     extends: php8
-    path: /home/madridianfox/work/ensi/runtime/elc-go/example/apps/crm
+    path: {{.WorkspacePath}}/apps/crm
     variables: {}
       

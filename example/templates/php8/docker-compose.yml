@@ -1,6 +1,10 @@
 services:
   app:
-    image: $PHP_IMAGE
+    image: $WORKSPACE_NAME/$APP_IMAGE
+    build:
+      context: $TPL_PATH/php
+      args:
+        - BASE_IMAGE=$BASE_IMAGE
     hostname: "$APP_NAME.$BASE_DOMAIN"
     volumes:
       - "$SVC_PATH:/var/www"

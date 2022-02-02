@@ -1,16 +1,87 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"os/user"
 	"path"
 	"strings"
+	"text/template"
 
 	"gopkg.in/yaml.v2"
 )
+
+// ====================================
+
+type HomeConfigItem struct {
+	Name string `yaml:"name"`
+	Path string `yaml:"path"`
+}
+
+type HomeConfig struct {
+	CurrentWorkspace string           `yaml:"current_workspace"`
+	Workspaces       []HomeConfigItem `yaml:"workspaces"`
+}
+
+func loadHomeConfig(configPath string) (*HomeConfig, error) {
+	yamlFile, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg := &HomeConfig{}
+	err = yaml.Unmarshal(yamlFile, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+
+func saveHomeConfig(configPath string, homeConfig *HomeConfig) error {
+	data, err := yaml.Marshal(homeConfig)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(configPath, data, 0600)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func checkHomeConfigIsEmpty(configPath string) error {
+	_, err := os.Stat(configPath)
+	if err == nil {
+		return nil
+	}
+	return saveHomeConfig(configPath, &HomeConfig{})
+}
+
+func (hc *HomeConfig) addWorkspace(configPath string, name string, path string) error {
+	hc.Workspaces = append(hc.Workspaces, HomeConfigItem{Name: name, Path: path})
+	return saveHomeConfig(configPath, &HomeConfig{})
+}
+
+func (hc *HomeConfig) getCurrentWsPath() (string, error) {
+	if hc.CurrentWorkspace == "" {
+		return "", errors.New("current workspace is not set")
+	}
+
+	for _, hci := range hc.Workspaces {
+		if hci.Name == hc.CurrentWorkspace {
+			return hci.Path, nil
+		}
+	}
+
+	return "", errors.New("current workspace is bad")
+}
 
 // ====================================
 
@@ -51,8 +122,16 @@ func (st *State) loadConfig() error {
 		return err
 	}
 
+	tmpl, err := template.New("config").Parse(string(yamlFile))
+	if err != nil {
+		return err
+	}
+
+	var buff bytes.Buffer
+
+	tmpl.Execute(&buff, st)
 	cfg := &Config{}
-	err = yaml.Unmarshal(yamlFile, cfg)
+	err = yaml.Unmarshal(buff.Bytes(), cfg)
 	if err != nil {
 		return err
 	}
@@ -85,6 +164,7 @@ func (st *State) getEnv(svcName string) ([]string, error) {
 	env = append(env, fmt.Sprintf("SVC_PATH=%s", svc.Path))
 	env = append(env, fmt.Sprintf("APP_NAME=%s", svc.Name))
 	env = append(env, fmt.Sprintf("COMPOSE_PROJECT_NAME=%s-%s", st.Config.Name, svc.Name))
+	env = append(env, fmt.Sprintf("WORKSPACE_NAME=%s", st.Config.Name))
 
 	return env, nil
 }
@@ -282,6 +362,17 @@ func actionDestroy(st *State, args []string) (int, error) {
 	return code, nil
 }
 
+// -----------------
+func actionCompose(st *State, args []string) (int, error) {
+	svcName, err := st.findServiceByPath()
+	if err != nil {
+		return 0, err
+	}
+
+	return execComposeCommand(st, svcName, args)
+}
+
+// =================
 // ================= CLI
 
 func getAction(args []string) (string, error) {
@@ -309,6 +400,8 @@ func runAction(st *State, args []string) (int, error) {
 		code, err = actionStop(st, args[1:])
 	case "destroy":
 		code, err = actionDestroy(st, args[1:])
+	case "compose":
+		code, err = actionCompose(st, args[1:])
 	default:
 		code, err = actionGlobalHelp()
 	}
@@ -340,30 +433,45 @@ func getServiceNames(st *State, args []string) ([]string, error) {
 // ================ Entrance
 
 func main() {
-	workdir := os.Getenv("WORKDIR")
-	if workdir == "" {
-		fmt.Println("variable WORKDIR is not defined")
+	currentUser, err := user.Current()
+	checkRootError(err)
+
+	homeConfigPath := path.Join(currentUser.HomeDir, ".elc.yaml")
+	checkHomeConfigIsEmpty(homeConfigPath)
+	hc, err := loadHomeConfig(homeConfigPath)
+	checkRootError(err)
+
+	args := os.Args[1:]
+	if len(args) == 0 {
 		os.Exit(1)
 	}
 
-	cwd, err := os.Getwd()
+	firstArg := args[1]
+
+	if firstArg == "workspace" {
+		// code, err := runHomeConfigAction(hc, args[1:])
+		// checkRootError(err)
+
+		// os.Exit(code)
+	} else {
+		workdir, err := hc.getCurrentWsPath()
+		cwd, err := os.Getwd()
+		checkRootError(err)
+
+		st := newState(workdir, cwd)
+		err = st.loadConfig()
+		checkRootError(err)
+
+		code, err := runAction(st, os.Args[1:])
+		checkRootError(err)
+
+		os.Exit(code)
+	}
+}
+
+func checkRootError(err error) {
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-
-	st := newState(workdir, cwd)
-	err = st.loadConfig()
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	code, err := runAction(st, os.Args[1:])
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	os.Exit(code)
 }
