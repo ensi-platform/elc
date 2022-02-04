@@ -1,4 +1,4 @@
-module elc
+module github.com/madridianfox/elc
 
 go 1.13
 
