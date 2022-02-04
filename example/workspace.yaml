@@ -23,10 +23,13 @@ services:
   - name: api
     extends: php80
     path: {{.WorkspacePath}}/apps/api
-    variables: {}
+    dependencies:
+      - cms
   - name: cms
     extends: php81
     path: {{.WorkspacePath}}/apps/cms
+    dependencies:
+      - proxy
   - name: proxy
     path: {{.WorkspacePath}}/apps/proxy
     compose_file: {{.WorkspacePath}}/apps/proxy/docker-compose.yml

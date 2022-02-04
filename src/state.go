@@ -26,11 +26,12 @@ type Config struct {
 }
 
 type Service struct {
-	Name        string
-	Path        string
-	Extends     string            `yaml:"extends"`
-	ComposeFile string            `yaml:"compose_file"`
-	Variables   map[string]string `yaml:"variables"`
+	Name         string
+	Path         string
+	Extends      string            `yaml:"extends"`
+	ComposeFile  string            `yaml:"compose_file"`
+	Variables    map[string]string `yaml:"variables"`
+	Dependencies []string          `yaml:"dependencies"`
 }
 
 func NewState(workspacePath string, cwd string) *State {

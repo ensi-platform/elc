@@ -20,7 +20,7 @@ func getServiceNames(st *State, args []string) ([]string, error) {
 	if len(args) > 0 {
 		svcNames = args
 	} else {
-		svcNames = make([]string, 1)
+		svcNames = make([]string, 0)
 		svcName, err := st.FindServiceByPath()
 		if err != nil {
 			return nil, err

@@ -24,7 +24,7 @@ func RunAction(st *State, args []string) (int, error) {
 	case "compose":
 		code, err = actionCompose(st, args[1:])
 	default:
-		return 0, nil
+		code, err = actionExec(st, args)
 	}
 
 	if err != nil {
@@ -47,9 +47,19 @@ func actionStart(st *State, args []string) (int, error) {
 	var code int
 
 	for _, svcName := range svcNames {
-		code, err = execComposeCommand(st, svcName, []string{"up", "-d"})
+		running, err := checkIsRunning(st, svcName)
 		if err != nil {
 			return 0, err
+		}
+		if !running {
+			err = startDependencies(st, svcName)
+			if err != nil {
+				return 0, err
+			}
+			code, err = execComposeCommandInteractive(st, svcName, []string{"up", "-d"})
+			if err != nil {
+				return 0, err
+			}
 		}
 	}
 
@@ -69,7 +79,7 @@ func actionStop(st *State, args []string) (int, error) {
 	var code int
 
 	for _, svcName := range svcNames {
-		code, err = execComposeCommand(st, svcName, []string{"stop"})
+		code, err = execComposeCommandInteractive(st, svcName, []string{"stop"})
 		if err != nil {
 			return 0, err
 		}
@@ -91,7 +101,7 @@ func actionDestroy(st *State, args []string) (int, error) {
 	var code int
 
 	for _, svcName := range svcNames {
-		code, err = execComposeCommand(st, svcName, []string{"down"})
+		code, err = execComposeCommandInteractive(st, svcName, []string{"down"})
 		if err != nil {
 			return 0, err
 		}
@@ -106,5 +116,47 @@ func actionCompose(st *State, args []string) (int, error) {
 		return 0, err
 	}
 
-	return execComposeCommand(st, svcName, args)
+	return execComposeCommandInteractive(st, svcName, args)
+}
+
+func actionExec(st *State, args []string) (int, error) {
+	svcName, err := st.FindServiceByPath()
+	if err != nil {
+		return 0, err
+	}
+
+	_, err = actionStart(st, []string{})
+	if err != nil {
+		return 0, err
+	}
+
+	command := append([]string{"exec", "app"}, args...)
+
+	return execComposeCommandInteractive(st, svcName, command)
+}
+
+func checkIsRunning(st *State, svcName string) (bool, error) {
+	_, out, err := execComposeCommandToString(st, svcName, []string{"ps", "--status=running", "-q"})
+	if err != nil {
+		return false, err
+	}
+
+	running := out != ""
+
+	return running, nil
+}
+
+func startDependencies(st *State, svcName string) error {
+	svc, err := FindServicebyName(st.Config.Services, svcName)
+	if err != nil {
+		return nil
+	}
+	for _, depName := range svc.Dependencies {
+		_, err = actionStart(st, []string{depName})
+		if err != nil {
+			return nil
+		}
+	}
+
+	return nil
 }
