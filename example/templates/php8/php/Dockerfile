@@ -4,11 +4,6 @@ FROM composer as composer
 
 FROM $BASE_IMAGE
 
-ARG GROUP_ID
-
-RUN addgroup --gid $GROUP_ID user
-RUN addgroup www-data user
-
 RUN apk add npm git openjdk8-jre-base bash
 
 COPY --from=composer /usr/bin/composer /usr/bin/composer

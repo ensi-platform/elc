@@ -6,6 +6,9 @@ services:
       args:
         - BASE_IMAGE=$BASE_IMAGE
     hostname: "$APP_NAME.$BASE_DOMAIN"
+    environment:
+      VIRTUAL_HOST: "$APP_NAME.$BASE_DOMAIN"
+      VIRTUAL_PORT: "80"
     volumes:
       - "$SVC_PATH:/var/www"
     networks:

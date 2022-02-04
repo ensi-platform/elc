@@ -1,0 +1,14 @@
+services:
+  app:
+    image: $APP_IMAGE
+    networks:
+      - dev
+    volumes:
+      - "/var/run/docker.sock:/tmp/docker.sock:ro"
+    ports:
+      - "80:80"
+
+networks:
+  dev:
+    external: true
+    name: $NETWORK
