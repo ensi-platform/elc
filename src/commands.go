@@ -271,6 +271,36 @@ func CmdServiceDestroy(homeConfigPath string, args []string) error {
 	return nil
 }
 
+func CmdServiceVars(homeConfigPath string, args []string) error {
+	cfg, err := getWorkspaceConfig(homeConfigPath)
+	if err != nil {
+		return err
+	}
+
+	var svcName string
+
+	if len(args) > 0 {
+		svcName = args[0]
+	} else {
+		svcName, err = cfg.FindServiceByPath()
+		if err != nil {
+			return err
+		}
+	}
+
+	svc, err := CreateFromSvcName(cfg, svcName)
+	if err != nil {
+		return err
+	}
+
+	err = svc.DumpVars()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func CmdServiceCompose(homeConfigPath string, args []string) (int, error) {
 	fs := flag.NewFlagSet("compose", flag.ContinueOnError)
 	composeParams := &SvcComposeParams{}

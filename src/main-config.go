@@ -1,25 +1,25 @@
 package src
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"os"
 	"path"
 	"strings"
-	"text/template"
 )
 
 type MainConfig struct {
-	WorkspacePath string            `yaml:"-"`
-	Cwd           string            `yaml:"-"`
-	WillStart     []string          `yaml:"-"`
-	Name          string            `yaml:"name"`
-	Templates     []TemplateConfig  `yaml:"templates"`
-	Services      []ServiceConfig   `yaml:"services"`
-	Modules       []ModuleConfig    `yaml:"modules"`
-	Variables     map[string]string `yaml:"variables"`
+	WorkspacePath  string            `yaml:"-"`
+	Cwd            string            `yaml:"-"`
+	WillStart      []string          `yaml:"-"`
+	LocalVariables map[string]string `yaml:"-"`
+	Name           string            `yaml:"name"`
+	Templates      []TemplateConfig  `yaml:"templates"`
+	Services       []ServiceConfig   `yaml:"services"`
+	Modules        []ModuleConfig    `yaml:"modules"`
+	Variables      map[string]string `yaml:"variables"`
 }
 
 func NewConfig(workspacePath string, cwd string) *MainConfig {
@@ -37,29 +37,38 @@ func (cfg *MainConfig) LoadFromFile() error {
 		return err
 	}
 
-	tmpl, err := template.New("config").Parse(string(yamlFile))
+	err = yaml.Unmarshal(yamlFile, cfg)
 	if err != nil {
 		return err
 	}
 
-	var buff bytes.Buffer
+	_, err = os.Stat(path.Join(cfg.WorkspacePath, "env.yaml"))
+	if err == nil {
+		yamlFile, err = ioutil.ReadFile(path.Join(cfg.WorkspacePath, "env.yaml"))
+		if err != nil {
+			return err
+		}
 
-	err = tmpl.Execute(&buff, cfg)
-	if err != nil {
-		return err
-	}
-
-	err = yaml.Unmarshal(buff.Bytes(), cfg)
-	if err != nil {
-		return err
+		err = yaml.Unmarshal(yamlFile, &cfg.LocalVariables)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
+func (cfg *MainConfig) renderPath(path string) (string, error) {
+	return substVars(path, map[string]string{"WORKSPACE_PATH": cfg.WorkspacePath})
+}
+
 func (cfg *MainConfig) FindServiceByPath() (string, error) {
 	for _, svc := range cfg.Services {
-		if strings.HasPrefix(cfg.Cwd, svc.Path) {
+		svcPath, err := cfg.renderPath(svc.Path)
+		if err != nil {
+			return "", err
+		}
+		if strings.HasPrefix(cfg.Cwd, svcPath) {
 			return svc.Name, nil
 		}
 	}
@@ -99,7 +108,11 @@ func (cfg *MainConfig) FindModuleByName(name string) (*ModuleConfig, error) {
 
 func (cfg *MainConfig) FindModuleByPath() (*ModuleConfig, error) {
 	for _, mdl := range cfg.Modules {
-		if strings.HasPrefix(cfg.Cwd, mdl.Path) {
+		mdlPath, err := cfg.renderPath(mdl.Path)
+		if err != nil {
+			return nil, err
+		}
+		if strings.HasPrefix(cfg.Cwd, mdlPath) {
 			return &mdl, nil
 		}
 	}

@@ -5,15 +5,15 @@ variables:
 
 templates:
   - name: php80
-    path: {{.WorkspacePath}}/templates/php8
-    compose_file: {{.WorkspacePath}}/templates/php8/docker-compose.yml
+    path: ${WORKSPACE_PATH}/templates/php8
+    compose_file: ${TPL_PATH}/docker-compose.yml
     variables:
       BASE_IMAGE: php:8.0-fpm-alpine
       APP_IMAGE: php80:latest
       NGINX_IMAGE: nginx:1.19-alpine
   - name: php81
-    path: {{.WorkspacePath}}/templates/php8
-    compose_file: {{.WorkspacePath}}/templates/php8/docker-compose.yml
+    path: ${WORKSPACE_PATH}/templates/php8
+    compose_file: ${TPL_PATH}/docker-compose.yml
     variables:
       BASE_IMAGE: php:8.1-fpm-alpine
       APP_IMAGE: php81:latest
@@ -22,24 +22,28 @@ templates:
 services: 
   - name: api
     extends: php80
-    path: {{.WorkspacePath}}/apps/api
+    path: ${WORKSPACE_PATH}/apps/api
+    variables:
+      VAR1: ${VAR1:-default}
+      VAR2: ${BAZINGA}
+      ERROR: ${UNDEFINED}
     dependencies:
       proxy: [dev, test]
       cms: [dev]
   - name: cms
     extends: php81
-    path: {{.WorkspacePath}}/apps/cms
+    path: ${WORKSPACE_PATH}/apps/cms
     dependencies:
       proxy: [dev, test]
       api: [dev]
   - name: proxy
-    path: {{.WorkspacePath}}/apps/proxy
-    compose_file: {{.WorkspacePath}}/apps/proxy/docker-compose.yml
+    path: ${WORKSPACE_PATH}/apps/proxy
+    compose_file: ${SVC_PATH}/docker-compose.yml
     variables:
       APP_IMAGE: jwilder/nginx-proxy:latest
 
 modules:
   - name: cms-client
-    path: {{.WorkspacePath}}/packages/cms-client
+    path: ${WORKSPACE_PATH}/packages/cms-client
     hosted_in: api
-    exec_path: {{.WorkspacePath}}/packages/cms-client # module mounted to container with same path as at host
+    exec_path: ${WORKSPACE_PATH}/packages/cms-client # module mounted to container with same path as at host

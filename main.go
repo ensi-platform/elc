@@ -45,8 +45,15 @@ func main() {
 		err = elc.CmdServiceDestroy(homeConfigPath, os.Args[2:])
 	case "compose":
 		returnCode, err = elc.CmdServiceCompose(homeConfigPath, os.Args[2:])
+	case "vars":
+		err = elc.CmdServiceVars(homeConfigPath, os.Args[2:])
 	default:
 		returnCode, err = elc.CmdServiceExec(homeConfigPath, os.Args[1:])
+	}
+
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
 
 	os.Exit(returnCode)

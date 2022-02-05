@@ -29,38 +29,65 @@ func CreateFromSvcName(cfg *MainConfig, svcName string) (*Service, error) {
 	return &sts, nil
 }
 
-func (svc *Service) GetEnv() ([]string, error) {
-	var env []string
+func (svc *Service) GetEnv() (map[string]string, error) {
+	env := make(map[string]string)
+	var err error
+
+	env["WORKSPACE_PATH"] = svc.Config.WorkspacePath
+	env["WORKSPACE_NAME"] = svc.Config.Name
+	env["APP_NAME"] = svc.SvcCfg.Name
+	env["COMPOSE_PROJECT_NAME"] = fmt.Sprintf("%s-%s", svc.Config.Name, svc.SvcCfg.Name)
+
+	for key, value := range svc.Config.LocalVariables {
+		env[key], err = substVars(value, env)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	env["SVC_PATH"], err = substVars(svc.SvcCfg.Path, env)
+	if err != nil {
+		return nil, err
+	}
 
 	for key, value := range svc.Config.Variables {
-		env = append(env, fmt.Sprintf("%s=%s", key, value))
+		env[key], err = substVars(value, env)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if svc.TplCfg != nil {
-		env = append(env, svc.TplCfg.GetEnv()...)
-		env = append(env, fmt.Sprintf("TPL_PATH=%s", svc.TplCfg.Path))
+		env["TPL_PATH"], err = substVars(svc.TplCfg.Path, env)
+		if err != nil {
+			return nil, err
+		}
+		env["COMPOSE_FILE"], err = substVars(svc.TplCfg.ComposeFile, env)
+		if err != nil {
+			return nil, err
+		}
+		for key, value := range svc.TplCfg.Variables {
+			env[key], err = substVars(value, env)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
-	env = append(env, svc.SvcCfg.GetEnv()...)
-	env = append(env, fmt.Sprintf("SVC_PATH=%s", svc.SvcCfg.Path))
-	env = append(env, fmt.Sprintf("APP_NAME=%s", svc.SvcCfg.Name))
-	env = append(env, fmt.Sprintf("COMPOSE_PROJECT_NAME=%s-%s", svc.Config.Name, svc.SvcCfg.Name))
-	env = append(env, fmt.Sprintf("WORKSPACE_NAME=%s", svc.Config.Name))
-	env = append(env, fmt.Sprintf("WORKSPACE_PATH=%s", svc.Config.WorkspacePath))
+	if svc.SvcCfg.ComposeFile != "" {
+		env["COMPOSE_FILE"], err = substVars(svc.SvcCfg.ComposeFile, env)
+		if err != nil {
+			return nil, err
+		}
+	}
+	for key, value := range svc.SvcCfg.Variables {
+		env[key], err = substVars(value, env)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	return env, nil
-}
-
-func (svc *Service) GetComposeFile() (string, error) {
-	if svc.SvcCfg.ComposeFile != "" {
-		return svc.SvcCfg.ComposeFile, nil
-	}
-
-	if svc.TplCfg != nil && svc.TplCfg.ComposeFile != "" {
-		return svc.TplCfg.ComposeFile, nil
-	}
-
-	return "", errors.New("compose file is not defined in service or template")
 }
 
 func (svc *Service) execComposeToString(composeCommand []string) (string, error) {
@@ -69,13 +96,13 @@ func (svc *Service) execComposeToString(composeCommand []string) (string, error)
 		return "", err
 	}
 
-	composeFile, err := svc.GetComposeFile()
-	if err != nil {
-		return "", err
+	composeFile, found := env["COMPOSE_FILE"]
+	if !found {
+		return "", errors.New("compose file is not defined in service or template")
 	}
 
 	command := append([]string{"docker", "compose", "-f", composeFile}, composeCommand...)
-	_, out, err := execToString(command, env)
+	_, out, err := execToString(command, renderMapToEnv(env))
 	if err != nil {
 		return "", err
 	}
@@ -89,13 +116,13 @@ func (svc *Service) execComposeInteractive(composeCommand []string) (int, error)
 		return 0, err
 	}
 
-	composeFile, err := svc.GetComposeFile()
-	if err != nil {
-		return 0, err
+	composeFile, found := env["COMPOSE_FILE"]
+	if !found {
+		return 0, errors.New("compose file is not defined in service or template")
 	}
 
 	command := append([]string{"docker", "compose", "-f", composeFile}, composeCommand...)
-	code, err := execInteractive(command, env)
+	code, err := execInteractive(command, renderMapToEnv(env))
 	if err != nil {
 		return 0, err
 	}
@@ -218,4 +245,17 @@ func (svc *Service) Exec(params *SvcExecParams) (int, error) {
 	}
 
 	return code, nil
+}
+
+func (svc *Service) DumpVars() error {
+	env, err := svc.GetEnv()
+	if err != nil {
+		return err
+	}
+
+	for _, line := range renderMapToEnv(env) {
+		fmt.Println(line)
+	}
+
+	return nil
 }
