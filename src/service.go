@@ -30,31 +30,17 @@ func CreateFromSvcName(cfg *MainConfig, svcName string) (*Service, error) {
 }
 
 func (svc *Service) GetEnv() (map[string]string, error) {
-	env := make(map[string]string)
-	var err error
-
-	env["WORKSPACE_PATH"] = svc.Config.WorkspacePath
-	env["WORKSPACE_NAME"] = svc.Config.Name
-	env["APP_NAME"] = svc.SvcCfg.Name
-	env["COMPOSE_PROJECT_NAME"] = fmt.Sprintf("%s-%s", svc.Config.Name, svc.SvcCfg.Name)
-
-	for key, value := range svc.Config.LocalVariables {
-		env[key], err = substVars(value, env)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	env["SVC_PATH"], err = substVars(svc.SvcCfg.Path, env)
+	env, err := svc.Config.makeGlobalEnv()
 	if err != nil {
 		return nil, err
 	}
 
-	for key, value := range svc.Config.Variables {
-		env[key], err = substVars(value, env)
-		if err != nil {
-			return nil, err
-		}
+	env["APP_NAME"] = svc.SvcCfg.Name
+	env["COMPOSE_PROJECT_NAME"] = fmt.Sprintf("%s-%s", svc.Config.Name, svc.SvcCfg.Name)
+
+	env["SVC_PATH"], err = substVars(svc.SvcCfg.Path, env)
+	if err != nil {
+		return nil, err
 	}
 
 	if svc.TplCfg != nil {

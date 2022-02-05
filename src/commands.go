@@ -108,7 +108,7 @@ func CmdWorkspaceSelect(homeConfigPath string, args []string) error {
 	name := args[0]
 
 	ws := hc.findWorkspace(name)
-	if ws != nil {
+	if ws == nil {
 		return errors.New(fmt.Sprintf("workspace with name '%s' is not defined", name))
 	}
 

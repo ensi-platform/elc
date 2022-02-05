@@ -58,8 +58,36 @@ func (cfg *MainConfig) LoadFromFile() error {
 	return nil
 }
 
+func (cfg *MainConfig) makeGlobalEnv() (map[string]string, error) {
+	env := make(map[string]string)
+	var err error
+
+	env["WORKSPACE_PATH"] = cfg.WorkspacePath
+	env["WORKSPACE_NAME"] = cfg.Name
+
+	for key, value := range cfg.LocalVariables {
+		env[key], err = substVars(value, env)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	for key, value := range cfg.Variables {
+		env[key], err = substVars(value, env)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return env, nil
+}
+
 func (cfg *MainConfig) renderPath(path string) (string, error) {
-	return substVars(path, map[string]string{"WORKSPACE_PATH": cfg.WorkspacePath})
+	env, err := cfg.makeGlobalEnv()
+	if err != nil {
+		return "", err
+	}
+	return substVars(path, env)
 }
 
 func (cfg *MainConfig) FindServiceByPath() (string, error) {
