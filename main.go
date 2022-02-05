@@ -10,43 +10,46 @@ import (
 )
 
 func main() {
+	var err error
+	var returnCode int
+
 	currentUser, err := user.Current()
-	elc.CheckRootError(err)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
 	homeConfigPath := path.Join(currentUser.HomeDir, ".elc.yaml")
-	err = elc.CheckHomeConfigIsEmpty(homeConfigPath)
-	elc.CheckRootError(err)
 
-	hc, err := elc.LoadHomeConfig(homeConfigPath)
-	elc.CheckRootError(err)
-
-	args := os.Args[1:]
-	if len(args) == 0 {
+	switch os.Args[1] {
+	case "-h", "--help":
 		printHelp()
+	case "workspace":
+		switch os.Args[2] {
+		case "list", "ls":
+			err = elc.CmdWorkspaceList(homeConfigPath)
+		case "add":
+			err = elc.CmdWorkspaceAdd(homeConfigPath, os.Args[3:])
+		case "select":
+			err = elc.CmdWorkspaceSelect(homeConfigPath, os.Args[3:])
+		case "show":
+			err = elc.CmdWorkspaceShow(homeConfigPath)
+		default:
+			err = elc.CmdWorkspaceHelp()
+		}
+	case "start":
+		err = elc.CmdServiceStart(homeConfigPath, os.Args[2:])
+	case "stop":
+		err = elc.CmdServiceStop(homeConfigPath, os.Args[2:])
+	case "destroy":
+		err = elc.CmdServiceDestroy(homeConfigPath, os.Args[2:])
+	case "compose":
+		returnCode, err = elc.CmdServiceCompose(homeConfigPath, os.Args[2:])
+	default:
+		returnCode, err = elc.CmdServiceExec(homeConfigPath, os.Args[1:])
 	}
 
-	firstArg := args[0]
-	if firstArg == "-h" || firstArg == "--help" {
-		printHelp()
-	} else if firstArg == "workspace" {
-		code, err := elc.RunWorkspaceAction(hc, args[1:])
-		elc.CheckRootError(err)
-
-		os.Exit(code)
-	} else {
-		workdir, err := hc.GetCurrentWsPath()
-		cwd, err := os.Getwd()
-		elc.CheckRootError(err)
-
-		st := elc.NewState(workdir, cwd)
-		err = st.LoadConfig()
-		elc.CheckRootError(err)
-
-		code, err := elc.RunAction(st, os.Args[1:])
-		elc.CheckRootError(err)
-
-		os.Exit(code)
-	}
+	os.Exit(returnCode)
 }
 
 func printHelp() {

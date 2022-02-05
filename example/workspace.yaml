@@ -24,12 +24,14 @@ services:
     extends: php80
     path: {{.WorkspacePath}}/apps/api
     dependencies:
-      - cms
+      proxy: [dev, test]
+      cms: [dev]
   - name: cms
     extends: php81
     path: {{.WorkspacePath}}/apps/cms
     dependencies:
-      - proxy
+      proxy: [dev, test]
+      api: [dev]
   - name: proxy
     path: {{.WorkspacePath}}/apps/proxy
     compose_file: {{.WorkspacePath}}/apps/proxy/docker-compose.yml
