@@ -22,8 +22,8 @@ variables:
 ```yaml
 templates:
   - name: php80
-    path: {{.WorkspacePath}}/templates/php8
-    compose_file: {{.WorkspacePath}}/templates/php8/docker-compose.yml
+    path: ${WORKSPACE_PATH}/templates/php8
+    compose_file: ${TPL_PATH}/docker-compose.yml
     variables:
       BASE_IMAGE: php:8.0-fpm-alpine
       APP_IMAGE: php80:latest
@@ -32,12 +32,15 @@ templates:
 
 **service definitions**
 ```yaml
-services: 
+services:
   - name: api
     extends: php80
-    path: {{.WorkspacePath}}/apps/api
+    path: ${WORKSPACE_PATH}/apps/api
+    variables:
+      VAR1: ${VAR1:-default}
     dependencies:
-      - database
+      proxy:    [dev]
+      database: [dev, test]
 ```
 
 Register workspace in elc:
