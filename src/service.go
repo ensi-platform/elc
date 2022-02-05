@@ -46,6 +46,7 @@ func (svc *Service) GetEnv() ([]string, error) {
 	env = append(env, fmt.Sprintf("APP_NAME=%s", svc.SvcCfg.Name))
 	env = append(env, fmt.Sprintf("COMPOSE_PROJECT_NAME=%s-%s", svc.Config.Name, svc.SvcCfg.Name))
 	env = append(env, fmt.Sprintf("WORKSPACE_NAME=%s", svc.Config.Name))
+	env = append(env, fmt.Sprintf("WORKSPACE_PATH=%s", svc.Config.WorkspacePath))
 
 	return env, nil
 }
@@ -196,6 +197,7 @@ func (svc *Service) Compose(params *SvcComposeParams) (int, error) {
 type SvcExecParams struct {
 	SvcComposeParams
 	SvcStartParams
+	WorkingDir string
 }
 
 func (svc *Service) Exec(params *SvcExecParams) (int, error) {
@@ -204,8 +206,12 @@ func (svc *Service) Exec(params *SvcExecParams) (int, error) {
 		return 0, err
 	}
 
-	// todo add more params
-	command := append([]string{"exec", "app"}, params.Cmd...)
+	command := []string{"exec"}
+	if params.WorkingDir != "" {
+		command = append(command, "-w", params.WorkingDir)
+	}
+	command = append(command, "app")
+	command = append(command, params.Cmd...)
 	code, err := svc.execComposeInteractive(command)
 	if err != nil {
 		return 0, err

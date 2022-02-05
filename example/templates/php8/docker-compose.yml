@@ -12,6 +12,7 @@ services:
     working_dir: /var/www
     volumes:
       - "$SVC_PATH:/var/www"
+      - "$WORKSPACE_PATH/packages:$WORKSPACE_PATH/packages"
     networks:
       - dev
   nginx:

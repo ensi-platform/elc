@@ -17,6 +17,13 @@ type ServiceConfig struct {
 	Dependencies   map[string][]string `yaml:"dependencies"`
 }
 
+type ModuleConfig struct {
+	Name     string `yaml:"name"`
+	Path     string `yaml:"path"`
+	HostedIn string `yaml:"hosted_in"`
+	ExecPath string `yaml:"exec_path"`
+}
+
 func (svcCfg *TemplateConfig) GetEnv() []string {
 	var env []string
 	for key, value := range svcCfg.Variables {

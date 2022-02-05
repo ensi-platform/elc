@@ -324,11 +324,27 @@ func CmdServiceExec(homeConfigPath string, args []string) (int, error) {
 		return 0, err
 	}
 
+	var mdl *ModuleConfig
+
 	if execParams.SvcName == "" {
-		execParams.SvcName, err = cfg.FindServiceByPath()
-		if err != nil {
-			return 0, err
+		mdl, err = cfg.FindModuleByPath()
+		if err == nil {
+			execParams.SvcName = mdl.HostedIn
+		} else {
+			execParams.SvcName, err = cfg.FindServiceByPath()
+			if err != nil {
+				return 0, err
+			}
 		}
+	} else {
+		mdl, err := cfg.FindModuleByName(execParams.SvcName)
+		if err == nil {
+			execParams.SvcName = mdl.HostedIn
+		}
+	}
+
+	if mdl != nil {
+		execParams.WorkingDir = mdl.ExecPath
 	}
 
 	svc, err := CreateFromSvcName(cfg, execParams.SvcName)

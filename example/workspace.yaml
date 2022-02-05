@@ -37,3 +37,9 @@ services:
     compose_file: {{.WorkspacePath}}/apps/proxy/docker-compose.yml
     variables:
       APP_IMAGE: jwilder/nginx-proxy:latest
+
+modules:
+  - name: cms-client
+    path: {{.WorkspacePath}}/packages/cms-client
+    hosted_in: api
+    exec_path: {{.WorkspacePath}}/packages/cms-client # module mounted to container with same path as at host

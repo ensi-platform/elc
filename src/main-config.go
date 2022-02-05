@@ -16,9 +16,9 @@ type MainConfig struct {
 	Cwd           string            `yaml:"-"`
 	WillStart     []string          `yaml:"-"`
 	Name          string            `yaml:"name"`
-	BaseDomain    string            `yaml:"base_domain"`
 	Templates     []TemplateConfig  `yaml:"templates"`
 	Services      []ServiceConfig   `yaml:"services"`
+	Modules       []ModuleConfig    `yaml:"modules"`
 	Variables     map[string]string `yaml:"variables"`
 }
 
@@ -85,4 +85,24 @@ func (cfg *MainConfig) FindTemplateByName(name string) (*TemplateConfig, error) 
 	}
 
 	return nil, errors.New(fmt.Sprintf("template %s not found", name))
+}
+
+func (cfg *MainConfig) FindModuleByName(name string) (*ModuleConfig, error) {
+	for _, mdl := range cfg.Modules {
+		if mdl.Name == name {
+			return &mdl, nil
+		}
+	}
+
+	return nil, errors.New(fmt.Sprintf("module %s not found", name))
+}
+
+func (cfg *MainConfig) FindModuleByPath() (*ModuleConfig, error) {
+	for _, mdl := range cfg.Modules {
+		if strings.HasPrefix(cfg.Cwd, mdl.Path) {
+			return &mdl, nil
+		}
+	}
+
+	return nil, errors.New("you are not in module folder")
 }
