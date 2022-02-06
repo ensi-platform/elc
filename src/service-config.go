@@ -41,5 +41,9 @@ func (svcCfg *ServiceConfig) GetDeps(tag string) []string {
 		}
 	}
 
+	if tag != "" && len(result) == 0 {
+		fmt.Printf("[WARN] there is no dependencies with tag %s\n", tag)
+	}
+
 	return result
 }
