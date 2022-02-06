@@ -62,7 +62,7 @@ func (cfg *MainConfig) makeGlobalEnv() (map[string]string, error) {
 	env := make(map[string]string)
 	var err error
 
-	env["WORKSPACE_PATH"] = cfg.WorkspacePath
+	env["WORKSPACE_PATH"] = strings.TrimRight(cfg.WorkspacePath, "/")
 	env["WORKSPACE_NAME"] = cfg.Name
 
 	for key, value := range cfg.LocalVariables {
