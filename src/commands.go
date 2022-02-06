@@ -436,3 +436,16 @@ func CmdServiceExec(homeConfigPath string, args []string) (int, error) {
 
 	return returnCode, nil
 }
+
+func CmdServiceSetHooks(args []string) error {
+	if len(args) != 1 {
+		return errors.New("command requires exactly 1 argument")
+	}
+	hooksFolder := args[0]
+	err := SetGitHooks(hooksFolder, os.Args[0])
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

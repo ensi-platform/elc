@@ -22,7 +22,7 @@ func main() {
 	homeConfigPath := path.Join(currentUser.HomeDir, ".elc.yaml")
 
 	switch os.Args[1] {
-	case "-h", "--help":
+	case "-h", "--help", "help":
 		printHelp()
 	case "workspace":
 		switch os.Args[2] {
@@ -49,6 +49,8 @@ func main() {
 		returnCode, err = elc.CmdServiceCompose(homeConfigPath, os.Args[2:])
 	case "vars":
 		err = elc.CmdServiceVars(homeConfigPath, os.Args[2:])
+	case "set-hooks":
+		err = elc.CmdServiceSetHooks(os.Args[2:])
 	default:
 		returnCode, err = elc.CmdServiceExec(homeConfigPath, os.Args[1:])
 	}
