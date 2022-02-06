@@ -426,7 +426,10 @@ func CmdServiceExec(homeConfigPath string, args []string) (int, error) {
 	}
 
 	if mdl != nil {
-		execParams.WorkingDir = mdl.ExecPath
+		execParams.WorkingDir, err = cfg.renderPath(mdl.ExecPath)
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	svc, err := CreateFromSvcName(cfg, execParams.SvcName)
