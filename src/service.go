@@ -3,6 +3,7 @@ package src
 import (
 	"errors"
 	"fmt"
+	"strconv"
 )
 
 type Service struct {
@@ -236,6 +237,7 @@ type SvcExecParams struct {
 	SvcComposeParams
 	SvcStartParams
 	WorkingDir string
+	UID        int
 }
 
 func (svc *Service) Exec(params *SvcExecParams) (int, error) {
@@ -247,6 +249,9 @@ func (svc *Service) Exec(params *SvcExecParams) (int, error) {
 	command := []string{"exec"}
 	if params.WorkingDir != "" {
 		command = append(command, "-w", params.WorkingDir)
+	}
+	if params.UID > -1 {
+		command = append(command, "-u", strconv.Itoa(params.UID))
 	}
 	command = append(command, "app")
 	command = append(command, params.Cmd...)

@@ -55,6 +55,10 @@ func addComposeFlags(fs *flag.FlagSet, params *SvcComposeParams) {
 	fs.StringVar(&params.SvcName, "svc", "", "name of service")
 }
 
+func addExecFlags(fs *flag.FlagSet, params *SvcExecParams) {
+	fs.IntVar(&params.UID, "uid", os.Getuid(), "user id")
+}
+
 func CmdWorkspaceList(homeConfigPath string) error {
 	hc, err := checkAndLoadHC(homeConfigPath)
 	if err != nil {
@@ -385,10 +389,11 @@ func CmdServiceCompose(homeConfigPath string, args []string) (int, error) {
 }
 
 func CmdServiceExec(homeConfigPath string, args []string) (int, error) {
-	fs := flag.NewFlagSet("compose", flag.ContinueOnError)
+	fs := flag.NewFlagSet("exec", flag.ContinueOnError)
 	execParams := &SvcExecParams{}
 	addComposeFlags(fs, &execParams.SvcComposeParams)
 	addStartFlags(fs, &execParams.SvcStartParams)
+	addExecFlags(fs, execParams)
 	err := fs.Parse(args)
 	if err != nil {
 		return 0, err
