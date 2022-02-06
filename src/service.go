@@ -193,6 +193,31 @@ func (svc *Service) Destroy() error {
 	return nil
 }
 
+type SvcRestartParams struct {
+	Hard bool
+}
+
+func (svc *Service) Restart(params *SvcRestartParams) error {
+	var err error
+	if params.Hard {
+		err = svc.Destroy()
+		if err != nil {
+			return err
+		}
+	} else {
+		err = svc.Stop()
+		if err != nil {
+			return err
+		}
+	}
+	err = svc.Start(&SvcStartParams{})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 type SvcComposeParams struct {
 	Cmd     []string
 	SvcName string

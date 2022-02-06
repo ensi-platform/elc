@@ -271,6 +271,53 @@ func CmdServiceDestroy(homeConfigPath string, args []string) error {
 	return nil
 }
 
+func CmdServiceRestart(homeConfigPath string, args []string) error {
+	fs := flag.NewFlagSet("restart", flag.ContinueOnError)
+	restartParams := &SvcRestartParams{}
+	fs.BoolVar(&restartParams.Hard, "hard", false, "destroy container instead of stop it before start")
+	err := fs.Parse(args)
+	if err != nil {
+		return err
+	}
+
+	cfg, err := getWorkspaceConfig(homeConfigPath)
+	if err != nil {
+		return err
+	}
+
+	svcNames := fs.Args()
+	if len(svcNames) > 0 {
+		for _, svcName := range svcNames {
+			svc, err := CreateFromSvcName(cfg, svcName)
+			if err != nil {
+				return err
+			}
+
+			err = svc.Restart(restartParams)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		svcName, err := cfg.FindServiceByPath()
+		if err != nil {
+			return err
+		}
+
+		svc, err := CreateFromSvcName(cfg, svcName)
+		if err != nil {
+			return err
+		}
+
+		err = svc.Restart(restartParams)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func CmdServiceVars(homeConfigPath string, args []string) error {
 	cfg, err := getWorkspaceConfig(homeConfigPath)
 	if err != nil {

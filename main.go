@@ -41,6 +41,8 @@ func main() {
 		err = elc.CmdServiceStart(homeConfigPath, os.Args[2:])
 	case "stop":
 		err = elc.CmdServiceStop(homeConfigPath, os.Args[2:])
+	case "restart":
+		err = elc.CmdServiceRestart(homeConfigPath, os.Args[2:])
 	case "destroy":
 		err = elc.CmdServiceDestroy(homeConfigPath, os.Args[2:])
 	case "compose":
@@ -62,17 +64,19 @@ func main() {
 func printHelp() {
 	fmt.Println(
 		strings.Join([]string{
-			"Usage: elc [options] [command] [args]",
+			"Usage: elc command [options] [args]",
 			"",
 			"Available commands:",
-			"  workspace",
-			"  compose",
-			"  start",
-			"  stop",
-			"  destroy",
+			fmt.Sprintf("  %-15s - %s", "workspace", "manage workspaces"),
+			fmt.Sprintf("  %-15s - %s", "compose", "run docker-compose command"),
+			fmt.Sprintf("  %-15s - %s", "start", "start service"),
+			fmt.Sprintf("  %-15s - %s", "stop", "stop service"),
+			fmt.Sprintf("  %-15s - %s", "restart", "restart service"),
+			fmt.Sprintf("  %-15s - %s", "destroy", "delete service containers"),
+			fmt.Sprintf("  %-15s - %s", "vars", "print variables"),
+			fmt.Sprintf("  %-15s - %s", "help", "print this help message"),
 			"",
-			"Global options:",
-			"  -h, --help",
+			"Any other command will be executed as \"compose exec command\"",
 		}, "\n"))
 	os.Exit(1)
 }
