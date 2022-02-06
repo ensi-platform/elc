@@ -7,6 +7,10 @@ With ELC you can:
 * describe sets of services for different cases (testing, development, monitoring)
 * use containerized development tools
 
+## Installation
+
+Download binary from releases page and place it to `/usr/local/bin` with name `elc`.
+
 ## How to use
 
 Make a workspace config file, which contains:
