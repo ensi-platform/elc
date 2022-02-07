@@ -59,7 +59,25 @@ func addExecFlags(fs *flag.FlagSet, params *SvcExecParams) {
 	fs.IntVar(&params.UID, "uid", os.Getuid(), "user id")
 }
 
-func CmdWorkspaceList(homeConfigPath string) error {
+func NeedHelp(args []string, usage string, lines []string) bool {
+	if len(args) > 0 && (args[0] == "-h" || args[0] == "--help" || args[0] == "help") {
+		fmt.Printf("Usage: %s %s\n", os.Args[0], usage)
+		if lines != nil {
+			fmt.Println("")
+			fmt.Println(strings.Join(lines, "\n"))
+			fmt.Println("")
+		}
+		return true
+	}
+	return false
+}
+
+func CmdWorkspaceList(homeConfigPath string, args []string) error {
+	if NeedHelp(args, "workspace list", []string{
+		"Show list of registered workspaces.",
+	}) {
+		return nil
+	}
 	hc, err := checkAndLoadHC(homeConfigPath)
 	if err != nil {
 		return err
@@ -73,6 +91,11 @@ func CmdWorkspaceList(homeConfigPath string) error {
 }
 
 func CmdWorkspaceAdd(homeConfigPath string, args []string) error {
+	if NeedHelp(args, "workspace add NAME PATH", []string{
+		"Register new workspace.",
+	}) {
+		return nil
+	}
 	hc, err := checkAndLoadHC(homeConfigPath)
 	if err != nil {
 		return err
@@ -100,6 +123,11 @@ func CmdWorkspaceAdd(homeConfigPath string, args []string) error {
 }
 
 func CmdWorkspaceSelect(homeConfigPath string, args []string) error {
+	if NeedHelp(args, "workspace select NAME", []string{
+		"Set workspace with name NAME as current.",
+	}) {
+		return nil
+	}
 	hc, err := checkAndLoadHC(homeConfigPath)
 	if err != nil {
 		return err
@@ -126,7 +154,12 @@ func CmdWorkspaceSelect(homeConfigPath string, args []string) error {
 	return nil
 }
 
-func CmdWorkspaceShow(homeConfigPath string) error {
+func CmdWorkspaceShow(homeConfigPath string, args []string) error {
+	if NeedHelp(args, "workspace show", []string{
+		"Print current workspace name.",
+	}) {
+		return nil
+	}
 	hc, err := checkAndLoadHC(homeConfigPath)
 	if err != nil {
 		return err
@@ -137,20 +170,27 @@ func CmdWorkspaceShow(homeConfigPath string) error {
 }
 
 func CmdWorkspaceHelp() error {
-	fmt.Println(
-		strings.Join([]string{
-			"Usage: elc workspace [command] [args]",
-			"",
-			"Available commands:",
-			"  ls, list          - list available workspaces",
-			"  show              - show current workspace name",
-			"  add <name> <path> - add new workspace",
-			"  select <name>     - select workspace as current",
-		}, "\n"))
+	NeedHelp([]string{"--help"}, "workspace COMMAND", []string{
+		"Available commands:",
+		"  ls, list - list available workspaces",
+		"  show     - show current workspace name",
+		"  add      - add new workspace",
+		"  select   - select workspace as current",
+	})
 	return nil
 }
 
 func CmdServiceStart(homeConfigPath string, args []string) error {
+	if NeedHelp(args, "start [OPTIONS] [NAMES...]", []string{
+		"Start one or more services.",
+		"By default starts service found with current directory, but you can pass one or more service names instead.",
+		"",
+		"Available options:",
+		fmt.Sprintf("  %-10s - %s", "--force", "force start dependencies, even if service already started"),
+		fmt.Sprintf("  %-10s - %s", "--tag", "start only dependencies wit specified tag, by default starts all dependencies"),
+	}) {
+		return nil
+	}
 	fs := flag.NewFlagSet("start", flag.ContinueOnError)
 	startParams := &SvcStartParams{}
 	addStartFlags(fs, startParams)
@@ -198,6 +238,12 @@ func CmdServiceStart(homeConfigPath string, args []string) error {
 }
 
 func CmdServiceStop(homeConfigPath string, args []string) error {
+	if NeedHelp(args, "stop [NAMES...]", []string{
+		"Stop one or more services.",
+		"By default stops service found with current directory, but you can pass one or more service names instead.",
+	}) {
+		return nil
+	}
 	cfg, err := getWorkspaceConfig(homeConfigPath)
 	if err != nil {
 		return err
@@ -237,6 +283,12 @@ func CmdServiceStop(homeConfigPath string, args []string) error {
 }
 
 func CmdServiceDestroy(homeConfigPath string, args []string) error {
+	if NeedHelp(args, "destroy [NAMES...]", []string{
+		"Stop and remove containers of one or more services.",
+		"By default destroys service found with current directory, but you can pass one or more service names instead.",
+	}) {
+		return nil
+	}
 	cfg, err := getWorkspaceConfig(homeConfigPath)
 	if err != nil {
 		return err
@@ -276,6 +328,15 @@ func CmdServiceDestroy(homeConfigPath string, args []string) error {
 }
 
 func CmdServiceRestart(homeConfigPath string, args []string) error {
+	if NeedHelp(args, "restart [OPTIONS] [NAMES...]", []string{
+		"Restart one or more services.",
+		"By default restart service found with current directory, but you can pass one or more service names instead.",
+		"",
+		"Available options:",
+		fmt.Sprintf("  %-10s - %s", "--hard", "destroy service instead of stopping it"),
+	}) {
+		return nil
+	}
 	fs := flag.NewFlagSet("restart", flag.ContinueOnError)
 	restartParams := &SvcRestartParams{}
 	fs.BoolVar(&restartParams.Hard, "hard", false, "destroy container instead of stop it before start")
@@ -323,6 +384,12 @@ func CmdServiceRestart(homeConfigPath string, args []string) error {
 }
 
 func CmdServiceVars(homeConfigPath string, args []string) error {
+	if NeedHelp(args, "vars [NAME]", []string{
+		"Print all variables computed for service.",
+		"By default uses service found with current directory, but you can pass name of another service instead.",
+	}) {
+		return nil
+	}
 	cfg, err := getWorkspaceConfig(homeConfigPath)
 	if err != nil {
 		return err
@@ -353,6 +420,15 @@ func CmdServiceVars(homeConfigPath string, args []string) error {
 }
 
 func CmdServiceCompose(homeConfigPath string, args []string) (int, error) {
+	if NeedHelp(args, "compose [OPTIONS] COMMAND [ARGS]", []string{
+		"Run docker-compose command.",
+		"By default uses service found with current directory.",
+		"",
+		"Available options:",
+		fmt.Sprintf("  %-10s - %s", "--svc", "name of another service instead of current"),
+	}) {
+		return 0, nil
+	}
 	fs := flag.NewFlagSet("compose", flag.ContinueOnError)
 	composeParams := &SvcComposeParams{}
 	addComposeFlags(fs, composeParams)
@@ -389,6 +465,18 @@ func CmdServiceCompose(homeConfigPath string, args []string) (int, error) {
 }
 
 func CmdServiceExec(homeConfigPath string, args []string) (int, error) {
+	if NeedHelp(args, "[OPTIONS] COMMAND [ARGS]", []string{
+		"Execute command in container. For module uses container of linked service.",
+		"By default uses service/module found with current directory. Starts service if it is not running.",
+		"",
+		"Available options:",
+		fmt.Sprintf("  %-10s - %s", "--force", "force start dependencies, even if service already started"),
+		fmt.Sprintf("  %-10s - %s", "--svc=NAME", "name of another service or module instead of current"),
+		fmt.Sprintf("  %-10s - %s", "--tag=TAG", "start only dependencies wit specified tag, by default starts all dependencies"),
+		fmt.Sprintf("  %-10s - %s", "--uid=UID", "use another uid, by default uses uid of current user"),
+	}) {
+		return 0, nil
+	}
 	fs := flag.NewFlagSet("exec", flag.ContinueOnError)
 	execParams := &SvcExecParams{}
 	addComposeFlags(fs, &execParams.SvcComposeParams)
@@ -446,6 +534,14 @@ func CmdServiceExec(homeConfigPath string, args []string) (int, error) {
 }
 
 func CmdServiceSetHooks(args []string) error {
+	if NeedHelp(args, "set-hooks HOOKS_PATH", []string{
+		"Install hooks from specified folder to .git/hooks.",
+		"HOOKS_PATH must contain subdirectories with names as git hooks, eg. 'pre-commit'.",
+		"One subdirectory can contain one or many scripts with .sh extension.",
+		"Every script wil be wrapped with 'elc --tag=hook' command.",
+	}) {
+		return nil
+	}
 	if len(args) != 1 {
 		return errors.New("command requires exactly 1 argument")
 	}

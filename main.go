@@ -6,10 +6,27 @@ import (
 	"os"
 	"os/user"
 	"path"
-	"strings"
 )
 
 func main() {
+	if elc.NeedHelp(os.Args[1:], "COMMAND", []string{
+		"Available commands:",
+		fmt.Sprintf("  %-15s - %s", "exec", "execute command inside service's container"),
+		fmt.Sprintf("  %-15s - %s", "compose", "run docker-compose command"),
+		fmt.Sprintf("  %-15s - %s", "destroy", "delete service containers"),
+		fmt.Sprintf("  %-15s - %s", "help", "print this help message"),
+		fmt.Sprintf("  %-15s - %s", "restart", "restart service"),
+		fmt.Sprintf("  %-15s - %s", "set-hooks", "install git hooks"),
+		fmt.Sprintf("  %-15s - %s", "start", "start service"),
+		fmt.Sprintf("  %-15s - %s", "stop", "stop service"),
+		fmt.Sprintf("  %-15s - %s", "vars", "print variables"),
+		fmt.Sprintf("  %-15s - %s", "workspace", "manage workspaces"),
+		"Any other arguments will be used for invoke of implicit exec command.",
+		"",
+		"You can get help for any command invoke it with '--help' option.",
+	}) {
+		os.Exit(0)
+	}
 	var err error
 	var returnCode int
 
@@ -22,18 +39,16 @@ func main() {
 	homeConfigPath := path.Join(currentUser.HomeDir, ".elc.yaml")
 
 	switch os.Args[1] {
-	case "-h", "--help", "help":
-		printHelp()
 	case "workspace":
 		switch os.Args[2] {
 		case "list", "ls":
-			err = elc.CmdWorkspaceList(homeConfigPath)
+			err = elc.CmdWorkspaceList(homeConfigPath, os.Args[3:])
 		case "add":
 			err = elc.CmdWorkspaceAdd(homeConfigPath, os.Args[3:])
 		case "select":
 			err = elc.CmdWorkspaceSelect(homeConfigPath, os.Args[3:])
 		case "show":
-			err = elc.CmdWorkspaceShow(homeConfigPath)
+			err = elc.CmdWorkspaceShow(homeConfigPath, os.Args[3:])
 		default:
 			err = elc.CmdWorkspaceHelp()
 		}
@@ -51,6 +66,8 @@ func main() {
 		err = elc.CmdServiceVars(homeConfigPath, os.Args[2:])
 	case "set-hooks":
 		err = elc.CmdServiceSetHooks(os.Args[2:])
+	case "exec":
+		returnCode, err = elc.CmdServiceExec(homeConfigPath, os.Args[2:])
 	default:
 		returnCode, err = elc.CmdServiceExec(homeConfigPath, os.Args[1:])
 	}
@@ -61,24 +78,4 @@ func main() {
 	}
 
 	os.Exit(returnCode)
-}
-
-func printHelp() {
-	fmt.Println(
-		strings.Join([]string{
-			"Usage: elc command [options] [args]",
-			"",
-			"Available commands:",
-			fmt.Sprintf("  %-15s - %s", "workspace", "manage workspaces"),
-			fmt.Sprintf("  %-15s - %s", "compose", "run docker-compose command"),
-			fmt.Sprintf("  %-15s - %s", "start", "start service"),
-			fmt.Sprintf("  %-15s - %s", "stop", "stop service"),
-			fmt.Sprintf("  %-15s - %s", "restart", "restart service"),
-			fmt.Sprintf("  %-15s - %s", "destroy", "delete service containers"),
-			fmt.Sprintf("  %-15s - %s", "vars", "print variables"),
-			fmt.Sprintf("  %-15s - %s", "help", "print this help message"),
-			"",
-			"Any other command will be executed as \"compose exec command\"",
-		}, "\n"))
-	os.Exit(1)
 }
