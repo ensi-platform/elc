@@ -3,6 +3,8 @@ package src
 import (
 	"errors"
 	"fmt"
+	"github.com/mattn/go-isatty"
+	"os"
 	"strconv"
 )
 
@@ -253,7 +255,12 @@ func (svc *Service) Exec(params *SvcExecParams) (int, error) {
 	if params.UID > -1 {
 		command = append(command, "-u", strconv.Itoa(params.UID))
 	}
+
+	if !isatty.IsTerminal(os.Stdout.Fd()) {
+		command = append(command, "-T")
+	}
 	command = append(command, "app")
+
 	command = append(command, params.Cmd...)
 	code, err := svc.execComposeInteractive(command)
 	if err != nil {
