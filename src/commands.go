@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 )
 
 func checkAndLoadHC(homeConfigPath string) (*HomeConfig, error) {
@@ -57,19 +56,6 @@ func addComposeFlags(fs *flag.FlagSet, params *SvcComposeParams) {
 
 func addExecFlags(fs *flag.FlagSet, params *SvcExecParams) {
 	fs.IntVar(&params.UID, "uid", os.Getuid(), "user id")
-}
-
-func NeedHelp(args []string, usage string, lines []string) bool {
-	if len(args) > 0 && (args[0] == "-h" || args[0] == "--help" || args[0] == "help") {
-		fmt.Printf("Usage: %s %s\n", os.Args[0], usage)
-		if lines != nil {
-			fmt.Println("")
-			fmt.Println(strings.Join(lines, "\n"))
-			fmt.Println("")
-		}
-		return true
-	}
-	return false
 }
 
 func CmdWorkspaceList(homeConfigPath string, args []string) error {
@@ -172,10 +158,10 @@ func CmdWorkspaceShow(homeConfigPath string, args []string) error {
 func CmdWorkspaceHelp() error {
 	NeedHelp([]string{"--help"}, "workspace COMMAND", []string{
 		"Available commands:",
-		"  ls, list - list available workspaces",
-		"  show     - show current workspace name",
-		"  add      - add new workspace",
-		"  select   - select workspace as current",
+		fmt.Sprintf("  %-18s - %s", Color("ls, list", CYellow), "list available workspaces"),
+		fmt.Sprintf("  %-18s - %s", Color("show", CYellow), "how current workspace name"),
+		fmt.Sprintf("  %-18s - %s", Color("add", CYellow), "add new workspace"),
+		fmt.Sprintf("  %-18s - %s", Color("select", CYellow), "select workspace as current"),
 	})
 	return nil
 }
@@ -186,8 +172,8 @@ func CmdServiceStart(homeConfigPath string, args []string) error {
 		"By default starts service found with current directory, but you can pass one or more service names instead.",
 		"",
 		"Available options:",
-		fmt.Sprintf("  %-10s - %s", "--force", "force start dependencies, even if service already started"),
-		fmt.Sprintf("  %-10s - %s", "--mode", "start only dependencies with specified mode, by default starts 'default' dependencies"),
+		fmt.Sprintf("  %-20s - %s", Color("--force", CYellow), "force start dependencies, even if service already started"),
+		fmt.Sprintf("  %-20s - %s", Color("--mode=MODE", CYellow), "start only dependencies with specified mode, by default starts 'default' dependencies"),
 	}) {
 		return nil
 	}
@@ -333,7 +319,7 @@ func CmdServiceRestart(homeConfigPath string, args []string) error {
 		"By default restart service found with current directory, but you can pass one or more service names instead.",
 		"",
 		"Available options:",
-		fmt.Sprintf("  %-10s - %s", "--hard", "destroy service instead of stopping it"),
+		fmt.Sprintf("  %-20s - %s", Color("--hard", CYellow), "destroy service instead of stopping it"),
 	}) {
 		return nil
 	}
@@ -425,7 +411,7 @@ func CmdServiceCompose(homeConfigPath string, args []string) (int, error) {
 		"By default uses service found with current directory.",
 		"",
 		"Available options:",
-		fmt.Sprintf("  %-10s - %s", "--svc", "name of another service instead of current"),
+		fmt.Sprintf("   %-20s - %s", Color("--svc=SVC", CYellow), "name of another service instead of current"),
 	}) {
 		return 0, nil
 	}
@@ -470,10 +456,10 @@ func CmdServiceExec(homeConfigPath string, args []string) (int, error) {
 		"By default uses service/module found with current directory. Starts service if it is not running.",
 		"",
 		"Available options:",
-		fmt.Sprintf("  %-10s - %s", "--force", "force start dependencies, even if service already started"),
-		fmt.Sprintf("  %-10s - %s", "--svc=NAME", "name of another service or module instead of current"),
-		fmt.Sprintf("  %-10s - %s", "--mode=MODE", "start only dependencies wit specified tag, by default starts 'default' dependencies"),
-		fmt.Sprintf("  %-10s - %s", "--uid=UID", "use another uid, by default uses uid of current user"),
+		fmt.Sprintf("  %-20s - %s", Color("--force", CYellow), "force start dependencies, even if service already started"),
+		fmt.Sprintf("  %-20s - %s", Color("--svc=NAME", CYellow), "name of another service or module instead of current"),
+		fmt.Sprintf("  %-20s - %s", Color("--mode=MODE", CYellow), "start only dependencies wit specified tag, by default starts 'default' dependencies"),
+		fmt.Sprintf("  %-20s - %s", Color("--uid=UID", CYellow), "use another uid, by default uses uid of current user"),
 	}) {
 		return 0, nil
 	}
