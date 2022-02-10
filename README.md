@@ -13,6 +13,8 @@ Download binary from releases page and place it to `/usr/local/bin` with name `e
 
 ## How to use
 
+[Full documentation (ru)](https://greensight.atlassian.net/wiki/spaces/ENSI/pages/540246017/ELC)
+
 Make a workspace config file, which contains:
 
 **global variables**
@@ -65,3 +67,9 @@ Invoke some tool
 $ cd /path/to/service/directory
 $ elc composer install
 ```
+
+## License
+
+Copyright © 2022 Ivan Koryukov
+
+Distributed under the MIT License. See [LICENSE.md](LICENSE.md).
