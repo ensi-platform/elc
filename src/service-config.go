@@ -33,16 +33,12 @@ func (svcCfg *TemplateConfig) GetEnv() []string {
 	return env
 }
 
-func (svcCfg *ServiceConfig) GetDeps(tag string) []string {
+func (svcCfg *ServiceConfig) GetDeps(mode string) []string {
 	var result []string
-	for key, tags := range svcCfg.Dependencies {
-		if tag == "" || contains(tags, tag) {
+	for key, modes := range svcCfg.Dependencies {
+		if contains(modes, mode) {
 			result = append(result, key)
 		}
-	}
-
-	if tag != "" && len(result) == 0 {
-		fmt.Printf("[WARN] there is no dependencies with tag %s\n", tag)
 	}
 
 	return result

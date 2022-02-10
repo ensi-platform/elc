@@ -47,7 +47,7 @@ func getWorkspaceConfig(homeConfigPath string) (*MainConfig, error) {
 }
 
 func addStartFlags(fs *flag.FlagSet, params *SvcStartParams) {
-	fs.StringVar(&params.Tag, "tag", "", "tag for dependencies selecting")
+	fs.StringVar(&params.Mode, "mode", "default", "tag for dependencies selecting")
 	fs.BoolVar(&params.Force, "force", false, "force start dependencies")
 }
 
@@ -187,7 +187,7 @@ func CmdServiceStart(homeConfigPath string, args []string) error {
 		"",
 		"Available options:",
 		fmt.Sprintf("  %-10s - %s", "--force", "force start dependencies, even if service already started"),
-		fmt.Sprintf("  %-10s - %s", "--tag", "start only dependencies wit specified tag, by default starts all dependencies"),
+		fmt.Sprintf("  %-10s - %s", "--mode", "start only dependencies with specified mode, by default starts 'default' dependencies"),
 	}) {
 		return nil
 	}
@@ -472,7 +472,7 @@ func CmdServiceExec(homeConfigPath string, args []string) (int, error) {
 		"Available options:",
 		fmt.Sprintf("  %-10s - %s", "--force", "force start dependencies, even if service already started"),
 		fmt.Sprintf("  %-10s - %s", "--svc=NAME", "name of another service or module instead of current"),
-		fmt.Sprintf("  %-10s - %s", "--tag=TAG", "start only dependencies wit specified tag, by default starts all dependencies"),
+		fmt.Sprintf("  %-10s - %s", "--mode=MODE", "start only dependencies wit specified tag, by default starts 'default' dependencies"),
 		fmt.Sprintf("  %-10s - %s", "--uid=UID", "use another uid, by default uses uid of current user"),
 	}) {
 		return 0, nil

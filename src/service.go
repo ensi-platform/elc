@@ -130,7 +130,7 @@ func (svc *Service) IsRunning() (bool, error) {
 
 type SvcStartParams struct {
 	Force bool
-	Tag   string
+	Mode  string
 }
 
 func (svc *Service) Start(params *SvcStartParams) error {
@@ -159,7 +159,7 @@ func (svc *Service) Start(params *SvcStartParams) error {
 }
 
 func (svc *Service) startDependencies(params *SvcStartParams) error {
-	for _, depName := range svc.SvcCfg.GetDeps(params.Tag) {
+	for _, depName := range svc.SvcCfg.GetDeps(params.Mode) {
 		if contains(svc.Config.WillStart, depName) {
 			continue
 		}
