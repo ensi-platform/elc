@@ -227,6 +227,9 @@ func CmdServiceStop(homeConfigPath string, args []string) error {
 	if NeedHelp(args, "stop [NAMES...]", []string{
 		"Stop one or more services.",
 		"By default stops service found with current directory, but you can pass one or more service names instead.",
+		"",
+		"Available options:",
+		fmt.Sprintf("  %-20s - %s", Color("--all", CYellow), "stop all services"),
 	}) {
 		return nil
 	}
@@ -235,7 +238,20 @@ func CmdServiceStop(homeConfigPath string, args []string) error {
 		return err
 	}
 
-	svcNames := args
+	fs := flag.NewFlagSet("stop", flag.ContinueOnError)
+	all := fs.Bool("all", false, "stop all services")
+	err = fs.Parse(args)
+	if err != nil {
+		return err
+	}
+
+	var svcNames []string
+	if *all {
+		svcNames = cfg.GetAllSvcNames()
+	} else {
+		svcNames = args
+	}
+
 	if len(svcNames) > 0 {
 		for _, svcName := range svcNames {
 			svc, err := CreateFromSvcName(cfg, svcName)
@@ -272,6 +288,9 @@ func CmdServiceDestroy(homeConfigPath string, args []string) error {
 	if NeedHelp(args, "destroy [NAMES...]", []string{
 		"Stop and remove containers of one or more services.",
 		"By default destroys service found with current directory, but you can pass one or more service names instead.",
+		"",
+		"Available options:",
+		fmt.Sprintf("  %-20s - %s", Color("--all", CYellow), "destroy all services"),
 	}) {
 		return nil
 	}
@@ -280,7 +299,20 @@ func CmdServiceDestroy(homeConfigPath string, args []string) error {
 		return err
 	}
 
-	svcNames := args
+	fs := flag.NewFlagSet("stop", flag.ContinueOnError)
+	all := fs.Bool("all", false, "stop all services")
+	err = fs.Parse(args)
+	if err != nil {
+		return err
+	}
+
+	var svcNames []string
+	if *all {
+		svcNames = cfg.GetAllSvcNames()
+	} else {
+		svcNames = args
+	}
+
 	if len(svcNames) > 0 {
 		for _, svcName := range svcNames {
 			svc, err := CreateFromSvcName(cfg, svcName)

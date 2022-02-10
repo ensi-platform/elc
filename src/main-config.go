@@ -147,3 +147,12 @@ func (cfg *MainConfig) FindModuleByPath() (*ModuleConfig, error) {
 
 	return nil, errors.New("you are not in module folder")
 }
+
+func (cfg *MainConfig) GetAllSvcNames() []string {
+	result := make([]string, 0)
+	for _, svc := range cfg.Services {
+		result = append(result, svc.Name)
+	}
+
+	return result
+}
