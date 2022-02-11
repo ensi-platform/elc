@@ -19,7 +19,7 @@ type MainConfig struct {
 	Templates      []TemplateConfig  `yaml:"templates"`
 	Services       []ServiceConfig   `yaml:"services"`
 	Modules        []ModuleConfig    `yaml:"modules"`
-	Variables      map[string]string `yaml:"variables"`
+	Variables      yaml.MapSlice     `yaml:"variables"`
 }
 
 func NewConfig(workspacePath string, cwd string) *MainConfig {
@@ -58,28 +58,29 @@ func (cfg *MainConfig) LoadFromFile() error {
 	return nil
 }
 
-func (cfg *MainConfig) makeGlobalEnv() (map[string]string, error) {
-	env := make(map[string]string)
-	var err error
+func (cfg *MainConfig) makeGlobalEnv() (Context, error) {
+	ctx := make(Context, 0)
 
-	env["WORKSPACE_PATH"] = strings.TrimRight(cfg.WorkspacePath, "/")
-	env["WORKSPACE_NAME"] = cfg.Name
+	ctx = ctx.add("WORKSPACE_PATH", strings.TrimRight(cfg.WorkspacePath, "/"))
+	ctx = ctx.add("WORKSPACE_NAME", cfg.Name)
 
-	for key, value := range cfg.LocalVariables {
-		env[key], err = substVars(value, env)
+	for key, rawValue := range cfg.LocalVariables {
+		value, err := substVars(rawValue, ctx)
 		if err != nil {
 			return nil, err
 		}
+		ctx = ctx.add(key, value)
 	}
 
-	for key, value := range cfg.Variables {
-		env[key], err = substVars(value, env)
+	for _, pair := range cfg.Variables {
+		value, err := substVars(pair.Value.(string), ctx)
 		if err != nil {
 			return nil, err
 		}
+		ctx = ctx.add(pair.Key.(string), value)
 	}
 
-	return env, nil
+	return ctx, nil
 }
 
 func (cfg *MainConfig) renderPath(path string) (string, error) {

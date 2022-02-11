@@ -32,66 +32,91 @@ func CreateFromSvcName(cfg *MainConfig, svcName string) (*Service, error) {
 	return &sts, nil
 }
 
-func (svc *Service) GetEnv() (map[string]string, error) {
-	env, err := svc.Config.makeGlobalEnv()
+func (svc *Service) GetEnv() (Context, error) {
+	ctx, err := svc.Config.makeGlobalEnv()
 	if err != nil {
 		return nil, err
 	}
 
-	env["APP_NAME"] = svc.SvcCfg.Name
-	env["COMPOSE_PROJECT_NAME"] = fmt.Sprintf("%s-%s", svc.Config.Name, svc.SvcCfg.Name)
+	ctx = ctx.add("APP_NAME", svc.SvcCfg.Name)
+	ctx = ctx.add("COMPOSE_PROJECT_NAME", fmt.Sprintf("%s-%s", svc.Config.Name, svc.SvcCfg.Name))
 
-	env["SVC_PATH"], err = substVars(svc.SvcCfg.Path, env)
+	svcPath, err := substVars(svc.SvcCfg.Path, ctx)
 	if err != nil {
 		return nil, err
 	}
+	ctx = ctx.add("SVC_PATH", svcPath)
 
 	if svc.TplCfg != nil {
-		env["TPL_PATH"], err = substVars(svc.TplCfg.Path, env)
+		tplPath, err := substVars(svc.TplCfg.Path, ctx)
 		if err != nil {
 			return nil, err
 		}
-		env["COMPOSE_FILE"], err = substVars(svc.TplCfg.ComposeFile, env)
+		ctx = ctx.add("TPL_PATH", tplPath)
+		composeFile, err := substVars(svc.TplCfg.ComposeFile, ctx)
 		if err != nil {
 			return nil, err
 		}
-		for key, value := range svc.TplCfg.Variables {
-			env[key], err = substVars(value, env)
+		ctx = ctx.add("COMPOSE_FILE", composeFile)
+		for _, pair := range svc.TplCfg.Variables {
+			value, err := substVars(pair.Value.(string), ctx)
 			if err != nil {
 				return nil, err
 			}
+			ctx = ctx.add(pair.Key.(string), value)
+		}
+
+		_, found := ctx.find("COMPOSE_FILE")
+		if !found {
+			composeFile, err := substVars("${TPL_PATH}/docker-compose.yaml", ctx)
+			if err != nil {
+				return nil, err
+			}
+			ctx = ctx.add("COMPOSE_FILE", composeFile)
 		}
 	}
 
 	if svc.SvcCfg.ComposeFile != "" {
-		env["COMPOSE_FILE"], err = substVars(svc.SvcCfg.ComposeFile, env)
+		composeFile, err := substVars(svc.SvcCfg.ComposeFile, ctx)
 		if err != nil {
 			return nil, err
 		}
-	}
-	for key, value := range svc.SvcCfg.Variables {
-		env[key], err = substVars(value, env)
-		if err != nil {
-			return nil, err
-		}
+		ctx = ctx.add("COMPOSE_FILE", composeFile)
 	}
 
-	return env, nil
+	_, found := ctx.find("COMPOSE_FILE")
+	if !found {
+		composeFile, err := substVars("${SVC_PATH}/docker-compose.yaml", ctx)
+		if err != nil {
+			return nil, err
+		}
+		ctx = ctx.add("COMPOSE_FILE", composeFile)
+	}
+
+	for _, pair := range svc.SvcCfg.Variables {
+		value, err := substVars(pair.Value.(string), ctx)
+		if err != nil {
+			return nil, err
+		}
+		ctx = ctx.add(pair.Key.(string), value)
+	}
+
+	return ctx, nil
 }
 
 func (svc *Service) execComposeToString(composeCommand []string) (string, error) {
-	env, err := svc.GetEnv()
+	ctx, err := svc.GetEnv()
 	if err != nil {
 		return "", err
 	}
 
-	composeFile, found := env["COMPOSE_FILE"]
+	composeFile, found := ctx.find("COMPOSE_FILE")
 	if !found {
 		return "", errors.New("compose file is not defined in service or template")
 	}
 
 	command := append([]string{"docker", "compose", "-f", composeFile}, composeCommand...)
-	_, out, err := execToString(command, renderMapToEnv(env))
+	_, out, err := execToString(command, ctx.renderMapToEnv())
 	if err != nil {
 		return "", err
 	}
@@ -100,18 +125,18 @@ func (svc *Service) execComposeToString(composeCommand []string) (string, error)
 }
 
 func (svc *Service) execComposeInteractive(composeCommand []string) (int, error) {
-	env, err := svc.GetEnv()
+	ctx, err := svc.GetEnv()
 	if err != nil {
 		return 0, err
 	}
 
-	composeFile, found := env["COMPOSE_FILE"]
+	composeFile, found := ctx.find("COMPOSE_FILE")
 	if !found {
 		return 0, errors.New("compose file is not defined in service or template")
 	}
 
 	command := append([]string{"docker", "compose", "-f", composeFile}, composeCommand...)
-	code, err := execInteractive(command, renderMapToEnv(env))
+	code, err := execInteractive(command, ctx.renderMapToEnv())
 	if err != nil {
 		return 0, err
 	}
@@ -271,12 +296,12 @@ func (svc *Service) Exec(params *SvcExecParams) (int, error) {
 }
 
 func (svc *Service) DumpVars() error {
-	env, err := svc.GetEnv()
+	ctx, err := svc.GetEnv()
 	if err != nil {
 		return err
 	}
 
-	for _, line := range renderMapToEnv(env) {
+	for _, line := range ctx.renderMapToEnv() {
 		fmt.Println(line)
 	}
 

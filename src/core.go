@@ -9,6 +9,46 @@ import (
 	"strings"
 )
 
+type Context [][]string
+
+func (ctx *Context) find(name string) (string, bool) {
+	for _, pair := range *ctx {
+		if pair[0] == name {
+			return pair[1], true
+		}
+	}
+	return "", false
+}
+
+func (ctx Context) remove(name string) Context {
+	index := -1
+	for i, pair := range ctx {
+		if pair[0] == name {
+			index = i
+		}
+	}
+
+	if index > -1 {
+		return append(ctx[:index], ctx[index+1:]...)
+	}
+
+	return ctx
+}
+
+func (ctx *Context) add(name string, value string) Context {
+	tmp := ctx.remove(name)
+	return append(tmp, []string{name, value})
+}
+
+func (ctx *Context) renderMapToEnv() []string {
+	var result []string
+	for _, pair := range *ctx {
+		result = append(result, fmt.Sprintf("%s=%s", pair[0], pair[1]))
+	}
+
+	return result
+}
+
 func contains(list []string, item string) bool {
 	for _, value := range list {
 		if value == item {
@@ -16,15 +56,6 @@ func contains(list []string, item string) bool {
 		}
 	}
 	return false
-}
-
-func renderMapToEnv(env map[string]string) []string {
-	var result []string
-	for key, value := range env {
-		result = append(result, fmt.Sprintf("%s=%s", key, value))
-	}
-
-	return result
 }
 
 type reResult map[string]string
@@ -51,7 +82,7 @@ func reFindMaps(pattern string, subject string) ([]reResult, error) {
 	return result, nil
 }
 
-func substVars(expr string, vars map[string]string) (string, error) {
+func substVars(expr string, ctx Context) (string, error) {
 	foundVars, err := reFindMaps(`\$\{(?P<name>[^:}]+)(:-(?P<value>[^}]+))?\}`, expr)
 	if err != nil {
 		return "", err
@@ -59,11 +90,19 @@ func substVars(expr string, vars map[string]string) (string, error) {
 
 	for _, foundVar := range foundVars {
 		varName := foundVar["name"]
-		value, found := vars[varName]
+		value, found := ctx.find(varName)
 		if !found {
 			value, found = foundVar["value"]
 			if !found {
 				return "", errors.New(fmt.Sprintf("variable %s is not set", varName))
+			}
+
+			if strings.HasPrefix(value, "$") {
+				varRef := strings.TrimLeft(value, "$")
+				value, found = ctx.find(varRef)
+				if !found {
+					return "", errors.New(fmt.Sprintf("variable %s is not set", varRef))
+				}
 			}
 		}
 		re, err := regexp.Compile(fmt.Sprintf(`\$\{%s(?::-[^}]+)?\}`, varName))

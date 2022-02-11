@@ -2,13 +2,14 @@ package src
 
 import (
 	"fmt"
+	"gopkg.in/yaml.v2"
 )
 
 type TemplateConfig struct {
-	Name        string            `yaml:"name"`
-	Path        string            `yaml:"path"`
-	ComposeFile string            `yaml:"compose_file"`
-	Variables   map[string]string `yaml:"variables"`
+	Name        string        `yaml:"name"`
+	Path        string        `yaml:"path"`
+	ComposeFile string        `yaml:"compose_file"`
+	Variables   yaml.MapSlice `yaml:"variables"`
 }
 
 type ServiceConfig struct {
