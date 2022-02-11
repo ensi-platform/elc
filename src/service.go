@@ -66,9 +66,9 @@ func (svc *Service) GetEnv() (Context, error) {
 			ctx = ctx.add(pair.Key.(string), value)
 		}
 
-		_, found := ctx.find("COMPOSE_FILE")
-		if !found {
-			composeFile, err := substVars("${TPL_PATH}/docker-compose.yaml", ctx)
+		composeFile, found := ctx.find("COMPOSE_FILE")
+		if !found || composeFile == "" {
+			composeFile, err := substVars("${TPL_PATH}/docker-compose.yml", ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -84,9 +84,9 @@ func (svc *Service) GetEnv() (Context, error) {
 		ctx = ctx.add("COMPOSE_FILE", composeFile)
 	}
 
-	_, found := ctx.find("COMPOSE_FILE")
-	if !found {
-		composeFile, err := substVars("${SVC_PATH}/docker-compose.yaml", ctx)
+	composeFile, found := ctx.find("COMPOSE_FILE")
+	if !found || composeFile == "" {
+		composeFile, err := substVars("${SVC_PATH}/docker-compose.yml", ctx)
 		if err != nil {
 			return nil, err
 		}
