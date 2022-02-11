@@ -105,6 +105,17 @@ func CmdWorkspaceAdd(homeConfigPath string, args []string) error {
 	}
 
 	fmt.Printf("workspace '%s' is added\n", name)
+
+	if hc.CurrentWorkspace == "" {
+		hc.CurrentWorkspace = name
+		err = SaveHomeConfig(hc)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("active workspace changed to '%s'\n", name)
+	}
+
 	return nil
 }
 
