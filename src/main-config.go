@@ -11,15 +11,19 @@ import (
 )
 
 type MainConfig struct {
-	WorkspacePath  string            `yaml:"-"`
-	Cwd            string            `yaml:"-"`
-	WillStart      []string          `yaml:"-"`
-	LocalVariables map[string]string `yaml:"-"`
-	Name           string            `yaml:"name"`
-	Templates      []TemplateConfig  `yaml:"templates"`
-	Services       []ServiceConfig   `yaml:"services"`
-	Modules        []ModuleConfig    `yaml:"modules"`
-	Variables      yaml.MapSlice     `yaml:"variables"`
+	WorkspacePath string           `yaml:"-"`
+	Cwd           string           `yaml:"-"`
+	WillStart     []string         `yaml:"-"`
+	LocalConfig   LocalConfig      `yaml:"-"`
+	Name          string           `yaml:"name"`
+	Templates     []TemplateConfig `yaml:"templates"`
+	Services      []ServiceConfig  `yaml:"services"`
+	Modules       []ModuleConfig   `yaml:"modules"`
+	Variables     yaml.MapSlice    `yaml:"variables"`
+}
+
+type LocalConfig struct {
+	LocalVariables map[string]string `yaml:"variables"`
 }
 
 func NewConfig(workspacePath string, cwd string) *MainConfig {
@@ -49,7 +53,7 @@ func (cfg *MainConfig) LoadFromFile() error {
 			return err
 		}
 
-		err = yaml.Unmarshal(yamlFile, &cfg.LocalVariables)
+		err = yaml.Unmarshal(yamlFile, &cfg.LocalConfig)
 		if err != nil {
 			return err
 		}
@@ -64,7 +68,7 @@ func (cfg *MainConfig) makeGlobalEnv() (Context, error) {
 	ctx = ctx.add("WORKSPACE_PATH", strings.TrimRight(cfg.WorkspacePath, "/"))
 	ctx = ctx.add("WORKSPACE_NAME", cfg.Name)
 
-	for key, rawValue := range cfg.LocalVariables {
+	for key, rawValue := range cfg.LocalConfig.LocalVariables {
 		value, err := substVars(rawValue, ctx)
 		if err != nil {
 			return nil, err
