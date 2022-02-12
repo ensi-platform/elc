@@ -15,8 +15,11 @@ type HomeConfigItem struct {
 type HomeConfig struct {
 	Path             string           `yaml:"-"`
 	CurrentWorkspace string           `yaml:"current_workspace"`
+	UpdateCommand    string           `yaml:"update_command"`
 	Workspaces       []HomeConfigItem `yaml:"workspaces"`
 }
+
+const defaultUpdateCommand = "curl -sSL https://raw.githubusercontent.com/MadridianFox/ensi-local-ctl/master/get.sh | sudo bash"
 
 func LoadHomeConfig(configPath string) (*HomeConfig, error) {
 	yamlFile, err := ioutil.ReadFile(configPath)
@@ -39,7 +42,7 @@ func SaveHomeConfig(homeConfig *HomeConfig) error {
 		return err
 	}
 
-	err = ioutil.WriteFile(homeConfig.Path, data, 0600)
+	err = ioutil.WriteFile(homeConfig.Path, data, 0644)
 	if err != nil {
 		return err
 	}
@@ -52,7 +55,7 @@ func CheckHomeConfigIsEmpty(configPath string) error {
 	if err == nil {
 		return nil
 	}
-	return SaveHomeConfig(&HomeConfig{Path: configPath})
+	return SaveHomeConfig(&HomeConfig{Path: configPath, UpdateCommand: defaultUpdateCommand})
 }
 
 func (hc *HomeConfig) AddWorkspace(name string, path string) error {

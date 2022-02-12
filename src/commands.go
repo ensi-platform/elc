@@ -582,3 +582,23 @@ func CmdServiceSetHooks(args []string) error {
 
 	return nil
 }
+
+func CmdUpdate(homeConfigPath string, args []string) error {
+	if NeedHelp(args, "update", []string{
+		"Download new version of ELC, place it to /opt/elc/ and update symlink at /usr/local/bin.",
+	}) {
+		return nil
+	}
+
+	hc, err := checkAndLoadHC(homeConfigPath)
+	if err != nil {
+		return err
+	}
+
+	_, err = execInteractive([]string{"bash", "-c", hc.UpdateCommand}, []string{})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
