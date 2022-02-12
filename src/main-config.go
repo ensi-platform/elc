@@ -10,20 +10,21 @@ import (
 	"strings"
 )
 
-type MainConfig struct {
-	WorkspacePath string           `yaml:"-"`
-	Cwd           string           `yaml:"-"`
-	WillStart     []string         `yaml:"-"`
-	LocalConfig   LocalConfig      `yaml:"-"`
-	Name          string           `yaml:"name"`
-	Templates     []TemplateConfig `yaml:"templates"`
-	Services      []ServiceConfig  `yaml:"services"`
-	Modules       []ModuleConfig   `yaml:"modules"`
-	Variables     yaml.MapSlice    `yaml:"variables"`
+type CoreConfig struct {
+	Aliases   map[string]string         `yaml:"aliases"`
+	Templates map[string]TemplateConfig `yaml:"templates"`
+	Services  map[string]ServiceConfig  `yaml:"services"`
+	Modules   map[string]ModuleConfig   `yaml:"modules"`
+	Variables yaml.MapSlice             `yaml:"variables"`
 }
 
-type LocalConfig struct {
-	LocalVariables map[string]string `yaml:"variables"`
+type MainConfig struct {
+	CoreConfig    `yaml:",inline"`
+	Name          string     `yaml:"name"`
+	LocalConfig   CoreConfig `yaml:"-"`
+	WorkspacePath string     `yaml:"-"`
+	Cwd           string     `yaml:"-"`
+	WillStart     []string   `yaml:"-"`
 }
 
 func NewConfig(workspacePath string, cwd string) *MainConfig {
@@ -68,12 +69,12 @@ func (cfg *MainConfig) makeGlobalEnv() (Context, error) {
 	ctx = ctx.add("WORKSPACE_PATH", strings.TrimRight(cfg.WorkspacePath, "/"))
 	ctx = ctx.add("WORKSPACE_NAME", cfg.Name)
 
-	for key, rawValue := range cfg.LocalConfig.LocalVariables {
-		value, err := substVars(rawValue, ctx)
+	for _, pair := range cfg.LocalConfig.Variables {
+		value, err := substVars(pair.Value.(string), ctx)
 		if err != nil {
 			return nil, err
 		}
-		ctx = ctx.add(key, value)
+		ctx = ctx.add(pair.Key.(string), value)
 	}
 
 	for _, pair := range cfg.Variables {
@@ -96,13 +97,13 @@ func (cfg *MainConfig) renderPath(path string) (string, error) {
 }
 
 func (cfg *MainConfig) FindServiceByPath() (string, error) {
-	for _, svc := range cfg.Services {
+	for name, svc := range cfg.Services {
 		svcPath, err := cfg.renderPath(svc.Path)
 		if err != nil {
 			return "", err
 		}
 		if strings.HasPrefix(cfg.Cwd, svcPath) {
-			return svc.Name, nil
+			return name, nil
 		}
 	}
 
@@ -110,33 +111,32 @@ func (cfg *MainConfig) FindServiceByPath() (string, error) {
 }
 
 func (cfg *MainConfig) FindServiceByName(name string) (*ServiceConfig, error) {
-	for _, svc := range cfg.Services {
-		if svc.Name == name {
-			return &svc, nil
-		}
+	realName := cfg.LocalConfig.resolveAlias(name)
+	svc, found := cfg.Services[realName]
+	if !found {
+		return nil, errors.New(fmt.Sprintf("service %s not found", name))
 	}
 
-	return nil, errors.New(fmt.Sprintf("service %s not found", name))
+	return &svc, nil
 }
 
 func (cfg *MainConfig) FindTemplateByName(name string) (*TemplateConfig, error) {
-	for _, tpl := range cfg.Templates {
-		if tpl.Name == name {
-			return &tpl, nil
-		}
+	tpl, found := cfg.Templates[name]
+	if !found {
+		return nil, errors.New(fmt.Sprintf("template %s not found", name))
 	}
 
-	return nil, errors.New(fmt.Sprintf("template %s not found", name))
+	return &tpl, nil
 }
 
 func (cfg *MainConfig) FindModuleByName(name string) (*ModuleConfig, error) {
-	for _, mdl := range cfg.Modules {
-		if mdl.Name == name {
-			return &mdl, nil
-		}
+	realName := cfg.LocalConfig.resolveAlias(name)
+	mdl, found := cfg.Modules[realName]
+	if !found {
+		return nil, errors.New(fmt.Sprintf("module %s not found", name))
 	}
 
-	return nil, errors.New(fmt.Sprintf("module %s not found", name))
+	return &mdl, nil
 }
 
 func (cfg *MainConfig) FindModuleByPath() (*ModuleConfig, error) {
@@ -155,9 +155,18 @@ func (cfg *MainConfig) FindModuleByPath() (*ModuleConfig, error) {
 
 func (cfg *MainConfig) GetAllSvcNames() []string {
 	result := make([]string, 0)
-	for _, svc := range cfg.Services {
-		result = append(result, svc.Name)
+	for name := range cfg.Services {
+		result = append(result, name)
 	}
 
 	return result
+}
+
+func (ccfg *CoreConfig) resolveAlias(name string) string {
+	realName, found := ccfg.Aliases[name]
+	if found {
+		return realName
+	}
+
+	return name
 }

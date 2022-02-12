@@ -9,13 +9,14 @@ import (
 )
 
 type Service struct {
+	Name   string
 	Config *MainConfig
 	SvcCfg *ServiceConfig
 	TplCfg *TemplateConfig
 }
 
 func CreateFromSvcName(cfg *MainConfig, svcName string) (*Service, error) {
-	sts := Service{Config: cfg}
+	sts := Service{Config: cfg, Name: svcName}
 	svc, err := cfg.FindServiceByName(svcName)
 	if err != nil {
 		return nil, err
@@ -38,8 +39,8 @@ func (svc *Service) GetEnv() (Context, error) {
 		return nil, err
 	}
 
-	ctx = ctx.add("APP_NAME", svc.SvcCfg.Name)
-	ctx = ctx.add("COMPOSE_PROJECT_NAME", fmt.Sprintf("%s-%s", svc.Config.Name, svc.SvcCfg.Name))
+	ctx = ctx.add("APP_NAME", svc.Name)
+	ctx = ctx.add("COMPOSE_PROJECT_NAME", fmt.Sprintf("%s-%s", svc.Config.Name, svc.Name))
 
 	svcPath, err := substVars(svc.SvcCfg.Path, ctx)
 	if err != nil {
@@ -159,7 +160,7 @@ type SvcStartParams struct {
 }
 
 func (svc *Service) Start(params *SvcStartParams) error {
-	svc.Config.WillStart = append(svc.Config.WillStart, svc.SvcCfg.Name)
+	svc.Config.WillStart = append(svc.Config.WillStart, svc.Name)
 
 	running, err := svc.IsRunning()
 	if err != nil {

@@ -67,7 +67,7 @@ func reFindMaps(pattern string, subject string) ([]reResult, error) {
 	}
 	matches := re.FindAllStringSubmatch(subject, -1)
 	names := re.SubexpNames()
-	result := []reResult{}
+	var result []reResult
 	for _, match := range matches {
 		foundFields := reResult{}
 		for i, field := range match {

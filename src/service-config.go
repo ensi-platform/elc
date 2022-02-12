@@ -6,7 +6,6 @@ import (
 )
 
 type TemplateConfig struct {
-	Name        string        `yaml:"name"`
 	Path        string        `yaml:"path"`
 	ComposeFile string        `yaml:"compose_file"`
 	Variables   yaml.MapSlice `yaml:"variables"`
@@ -19,7 +18,6 @@ type ServiceConfig struct {
 }
 
 type ModuleConfig struct {
-	Name     string `yaml:"name"`
 	Path     string `yaml:"path"`
 	HostedIn string `yaml:"hosted_in"`
 	ExecPath string `yaml:"exec_path"`
@@ -27,8 +25,8 @@ type ModuleConfig struct {
 
 func (svcCfg *TemplateConfig) GetEnv() []string {
 	var env []string
-	for key, value := range svcCfg.Variables {
-		env = append(env, fmt.Sprintf("%s=%s", key, value))
+	for _, pair := range svcCfg.Variables {
+		env = append(env, fmt.Sprintf("%s=%s", pair.Key.(string), pair.Value.(string)))
 	}
 
 	return env
