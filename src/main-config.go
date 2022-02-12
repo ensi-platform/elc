@@ -31,6 +31,12 @@ func NewConfig(workspacePath string, cwd string) *MainConfig {
 	cfg := MainConfig{
 		WorkspacePath: workspacePath,
 		Cwd:           cwd,
+		CoreConfig: CoreConfig{
+			Aliases:   make(map[string]string),
+			Templates: make(map[string]TemplateConfig),
+			Services:  make(map[string]ServiceConfig),
+			Modules:   make(map[string]ModuleConfig),
+		},
 	}
 
 	return &cfg
@@ -58,9 +64,28 @@ func (cfg *MainConfig) LoadFromFile() error {
 		if err != nil {
 			return err
 		}
+		cfg.mergeLocalValues()
 	}
 
 	return nil
+}
+
+func (cfg *MainConfig) mergeLocalValues() {
+	for key, value := range cfg.LocalConfig.Templates {
+		cfg.Templates[key] = value
+	}
+
+	for key, value := range cfg.LocalConfig.Services {
+		cfg.Services[key] = value
+	}
+
+	for key, value := range cfg.LocalConfig.Modules {
+		cfg.Modules[key] = value
+	}
+
+	for key, value := range cfg.LocalConfig.Aliases {
+		cfg.Aliases[key] = value
+	}
 }
 
 func (cfg *MainConfig) makeGlobalEnv() (Context, error) {
