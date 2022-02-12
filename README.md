@@ -9,7 +9,11 @@ With ELC you can:
 
 ## Installation
 
-Download binary from releases page and place it to `/usr/local/bin` with name `elc`.
+```bash
+curl -sSL https://raw.githubusercontent.com/MadridianFox/ensi-local-ctl/master/get.sh | sudo bash
+
+elc --help
+```
 
 ## How to use
 
