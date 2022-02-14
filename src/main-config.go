@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
-	"os"
 	"path"
 	"strings"
 )
@@ -43,7 +41,7 @@ func NewConfig(workspacePath string, cwd string) *MainConfig {
 }
 
 func (cfg *MainConfig) LoadFromFile() error {
-	yamlFile, err := ioutil.ReadFile(path.Join(cfg.WorkspacePath, "workspace.yaml"))
+	yamlFile, err := Pc.ReadFile(path.Join(cfg.WorkspacePath, "workspace.yaml"))
 	if err != nil {
 		return err
 	}
@@ -53,9 +51,9 @@ func (cfg *MainConfig) LoadFromFile() error {
 		return err
 	}
 
-	_, err = os.Stat(path.Join(cfg.WorkspacePath, "env.yaml"))
-	if err == nil {
-		yamlFile, err = ioutil.ReadFile(path.Join(cfg.WorkspacePath, "env.yaml"))
+	envPath := path.Join(cfg.WorkspacePath, "env.yaml")
+	if Pc.FileExists(envPath) {
+		yamlFile, err = Pc.ReadFile(envPath)
 		if err != nil {
 			return err
 		}

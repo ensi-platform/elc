@@ -2,7 +2,6 @@ package src
 
 import (
 	"fmt"
-	"os"
 	"strings"
 )
 
@@ -15,7 +14,7 @@ func Color(text string, color string) string {
 
 func NeedHelp(args []string, usage string, lines []string) bool {
 	if len(args) > 0 && (args[0] == "-h" || args[0] == "--help" || args[0] == "help") {
-		fmt.Printf("Usage: %s %s\n", os.Args[0], usage)
+		fmt.Printf("Usage: %s %s\n", Pc.Args()[0], usage)
 		if lines != nil {
 			fmt.Println("")
 			fmt.Println(strings.Join(lines, "\n"))

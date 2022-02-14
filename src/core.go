@@ -3,7 +3,6 @@ package src
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"path"
 	"regexp"
 	"strings"
@@ -116,7 +115,7 @@ func substVars(expr string, ctx Context) (string, error) {
 }
 
 func SetGitHooks(scriptsFolder string, elcBinary string) error {
-	folders, err := ioutil.ReadDir(scriptsFolder)
+	folders, err := Pc.ReadDir(scriptsFolder)
 	if err != nil {
 		return err
 	}
@@ -124,7 +123,7 @@ func SetGitHooks(scriptsFolder string, elcBinary string) error {
 		if !folder.IsDir() {
 			continue
 		}
-		files, err := ioutil.ReadDir(path.Join(scriptsFolder, folder.Name()))
+		files, err := Pc.ReadDir(path.Join(scriptsFolder, folder.Name()))
 		if err != nil {
 			return err
 		}
@@ -133,7 +132,7 @@ func SetGitHooks(scriptsFolder string, elcBinary string) error {
 			hookScripts = append(hookScripts, path.Join(scriptsFolder, folder.Name(), file.Name()))
 		}
 		script := generateHookScript(hookScripts, elcBinary)
-		err = ioutil.WriteFile(fmt.Sprintf(".git/hooks/%s", folder.Name()), []byte(script), 0755)
+		err = Pc.WriteFile(fmt.Sprintf(".git/hooks/%s", folder.Name()), []byte(script), 0755)
 		if err != nil {
 			return err
 		}
@@ -148,7 +147,7 @@ func generateHookScript(scripts []string, elcBinary string) string {
 	result = append(result, "set -e")
 	result = append(result, `printf "\x1b[0;34m%s\x1b[39;49;00m\n" "Run hook in ELC"`)
 	for _, script := range scripts {
-		result = append(result, fmt.Sprintf("%s --tag=hook %s", elcBinary, script))
+		result = append(result, fmt.Sprintf("%s --mode=hook %s", elcBinary, script))
 	}
 
 	return strings.Join(result, "\n")

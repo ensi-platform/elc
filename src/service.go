@@ -3,8 +3,6 @@ package src
 import (
 	"errors"
 	"fmt"
-	"github.com/mattn/go-isatty"
-	"os"
 	"strconv"
 )
 
@@ -117,7 +115,7 @@ func (svc *Service) execComposeToString(composeCommand []string) (string, error)
 	}
 
 	command := append([]string{"docker", "compose", "-f", composeFile}, composeCommand...)
-	_, out, err := execToString(command, ctx.renderMapToEnv())
+	_, out, err := Pc.ExecToString(command, ctx.renderMapToEnv())
 	if err != nil {
 		return "", err
 	}
@@ -137,7 +135,7 @@ func (svc *Service) execComposeInteractive(composeCommand []string) (int, error)
 	}
 
 	command := append([]string{"docker", "compose", "-f", composeFile}, composeCommand...)
-	code, err := execInteractive(command, ctx.renderMapToEnv())
+	code, err := Pc.ExecInteractive(command, ctx.renderMapToEnv())
 	if err != nil {
 		return 0, err
 	}
@@ -282,7 +280,7 @@ func (svc *Service) Exec(params *SvcExecParams) (int, error) {
 		command = append(command, "-u", strconv.Itoa(params.UID))
 	}
 
-	if !isatty.IsTerminal(os.Stdout.Fd()) {
+	if !Pc.IsTerminal() {
 		command = append(command, "-T")
 	}
 	command = append(command, "app")
@@ -303,7 +301,7 @@ func (svc *Service) DumpVars() error {
 	}
 
 	for _, line := range ctx.renderMapToEnv() {
-		fmt.Println(line)
+		_, _ = Pc.Println(line)
 	}
 
 	return nil

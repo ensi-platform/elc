@@ -31,7 +31,7 @@ func getWorkspaceConfig(homeConfigPath string) (*MainConfig, error) {
 		return nil, err
 	}
 
-	cwd, err := os.Getwd()
+	cwd, err := Pc.Getwd()
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func CmdWorkspaceList(homeConfigPath string, args []string) error {
 	}
 
 	for _, workspace := range hc.Workspaces {
-		fmt.Printf("%-10s %s\n", workspace.Name, workspace.Path)
+		_, _ = Pc.Printf("%-10s %s\n", workspace.Name, workspace.Path)
 	}
 
 	return nil
@@ -104,7 +104,7 @@ func CmdWorkspaceAdd(homeConfigPath string, args []string) error {
 		return err
 	}
 
-	fmt.Printf("workspace '%s' is added\n", name)
+	_, _ = Pc.Printf("workspace '%s' is added\n", name)
 
 	if hc.CurrentWorkspace == "" {
 		hc.CurrentWorkspace = name
@@ -113,7 +113,7 @@ func CmdWorkspaceAdd(homeConfigPath string, args []string) error {
 			return err
 		}
 
-		fmt.Printf("active workspace changed to '%s'\n", name)
+		_, _ = Pc.Printf("active workspace changed to '%s'\n", name)
 	}
 
 	return nil
@@ -147,7 +147,7 @@ func CmdWorkspaceSelect(homeConfigPath string, args []string) error {
 		return err
 	}
 
-	fmt.Printf("active workspace changed to '%s'\n", name)
+	_, _ = Pc.Printf("active workspace changed to '%s'\n", name)
 	return nil
 }
 
@@ -161,7 +161,7 @@ func CmdWorkspaceShow(homeConfigPath string, args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(hc.CurrentWorkspace)
+	_, _ = Pc.Println(hc.CurrentWorkspace)
 
 	return nil
 }
@@ -595,7 +595,7 @@ func CmdUpdate(homeConfigPath string, args []string) error {
 		return err
 	}
 
-	_, err = execInteractive([]string{"bash", "-c", hc.UpdateCommand}, []string{})
+	_, err = Pc.ExecInteractive([]string{"bash", "-c", hc.UpdateCommand}, []string{})
 	if err != nil {
 		return err
 	}

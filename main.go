@@ -3,13 +3,14 @@ package main
 import (
 	"fmt"
 	elc "github.com/madridianfox/elc/src"
-	"os"
-	"os/user"
 	"path"
 )
 
 func main() {
-	if elc.NeedHelp(os.Args[1:], "COMMAND", []string{
+	elc.Pc = &elc.RealPC{}
+	args := elc.Pc.Args()
+
+	if elc.NeedHelp(args[1:], "COMMAND", []string{
 		"Available commands:",
 		fmt.Sprintf("  %-20s - %s", elc.Color("exec", elc.CYellow), "execute command inside service's container"),
 		fmt.Sprintf("  %-20s - %s", elc.Color("compose", elc.CYellow), "run docker-compose command"),
@@ -26,59 +27,59 @@ func main() {
 		"",
 		"You can get help for any command invoke it with '--help' option.",
 	}) {
-		os.Exit(0)
+		elc.Pc.Exit(0)
 	}
 	var err error
 	var returnCode int
 
-	currentUser, err := user.Current()
+	homeDir, err := elc.Pc.HomeDir()
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		elc.Pc.Exit(1)
 	}
 
-	homeConfigPath := path.Join(currentUser.HomeDir, ".elc.yaml")
+	homeConfigPath := path.Join(homeDir, ".elc.yaml")
 
-	switch os.Args[1] {
+	switch args[1] {
 	case "workspace":
-		switch os.Args[2] {
+		switch args[2] {
 		case "list", "ls":
-			err = elc.CmdWorkspaceList(homeConfigPath, os.Args[3:])
+			err = elc.CmdWorkspaceList(homeConfigPath, args[3:])
 		case "add":
-			err = elc.CmdWorkspaceAdd(homeConfigPath, os.Args[3:])
+			err = elc.CmdWorkspaceAdd(homeConfigPath, args[3:])
 		case "select":
-			err = elc.CmdWorkspaceSelect(homeConfigPath, os.Args[3:])
+			err = elc.CmdWorkspaceSelect(homeConfigPath, args[3:])
 		case "show":
-			err = elc.CmdWorkspaceShow(homeConfigPath, os.Args[3:])
+			err = elc.CmdWorkspaceShow(homeConfigPath, args[3:])
 		default:
 			err = elc.CmdWorkspaceHelp()
 		}
 	case "start":
-		err = elc.CmdServiceStart(homeConfigPath, os.Args[2:])
+		err = elc.CmdServiceStart(homeConfigPath, args[2:])
 	case "stop":
-		err = elc.CmdServiceStop(homeConfigPath, os.Args[2:])
+		err = elc.CmdServiceStop(homeConfigPath, args[2:])
 	case "restart":
-		err = elc.CmdServiceRestart(homeConfigPath, os.Args[2:])
+		err = elc.CmdServiceRestart(homeConfigPath, args[2:])
 	case "destroy":
-		err = elc.CmdServiceDestroy(homeConfigPath, os.Args[2:])
+		err = elc.CmdServiceDestroy(homeConfigPath, args[2:])
 	case "compose":
-		returnCode, err = elc.CmdServiceCompose(homeConfigPath, os.Args[2:])
+		returnCode, err = elc.CmdServiceCompose(homeConfigPath, args[2:])
 	case "vars":
-		err = elc.CmdServiceVars(homeConfigPath, os.Args[2:])
+		err = elc.CmdServiceVars(homeConfigPath, args[2:])
 	case "set-hooks":
-		err = elc.CmdServiceSetHooks(os.Args[2:])
+		err = elc.CmdServiceSetHooks(args[2:])
 	case "exec":
-		returnCode, err = elc.CmdServiceExec(homeConfigPath, os.Args[2:])
+		returnCode, err = elc.CmdServiceExec(homeConfigPath, args[2:])
 	case "update":
-		err = elc.CmdUpdate(homeConfigPath, os.Args[2:])
+		err = elc.CmdUpdate(homeConfigPath, args[2:])
 	default:
-		returnCode, err = elc.CmdServiceExec(homeConfigPath, os.Args[1:])
+		returnCode, err = elc.CmdServiceExec(homeConfigPath, args[1:])
 	}
 
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		elc.Pc.Exit(1)
 	}
 
-	os.Exit(returnCode)
+	elc.Pc.Exit(returnCode)
 }

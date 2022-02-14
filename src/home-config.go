@@ -3,8 +3,6 @@ package src
 import (
 	"errors"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
-	"os"
 )
 
 type HomeConfigItem struct {
@@ -22,7 +20,7 @@ type HomeConfig struct {
 const defaultUpdateCommand = "curl -sSL https://raw.githubusercontent.com/MadridianFox/ensi-local-ctl/master/get.sh | sudo bash"
 
 func LoadHomeConfig(configPath string) (*HomeConfig, error) {
-	yamlFile, err := ioutil.ReadFile(configPath)
+	yamlFile, err := Pc.ReadFile(configPath)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +40,7 @@ func SaveHomeConfig(homeConfig *HomeConfig) error {
 		return err
 	}
 
-	err = ioutil.WriteFile(homeConfig.Path, data, 0644)
+	err = Pc.WriteFile(homeConfig.Path, data, 0644)
 	if err != nil {
 		return err
 	}
@@ -51,8 +49,7 @@ func SaveHomeConfig(homeConfig *HomeConfig) error {
 }
 
 func CheckHomeConfigIsEmpty(configPath string) error {
-	_, err := os.Stat(configPath)
-	if err == nil {
+	if Pc.FileExists(configPath) {
 		return nil
 	}
 	return SaveHomeConfig(&HomeConfig{Path: configPath, UpdateCommand: defaultUpdateCommand})
