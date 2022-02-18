@@ -14,11 +14,11 @@ type Service struct {
 }
 
 func CreateFromSvcName(cfg *MainConfig, svcName string) (*Service, error) {
-	sts := Service{Config: cfg, Name: svcName}
-	svc, err := cfg.FindServiceByName(svcName)
+	svc, realName, err := cfg.FindServiceByName(svcName)
 	if err != nil {
 		return nil, err
 	}
+	sts := Service{Config: cfg, Name: realName}
 	sts.SvcCfg = svc
 
 	if svc.Extends != "" {

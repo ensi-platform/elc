@@ -133,14 +133,14 @@ func (cfg *MainConfig) FindServiceByPath() (string, error) {
 	return "", errors.New("you are not in service folder")
 }
 
-func (cfg *MainConfig) FindServiceByName(name string) (*ServiceConfig, error) {
+func (cfg *MainConfig) FindServiceByName(name string) (*ServiceConfig, string, error) {
 	realName := cfg.LocalConfig.resolveAlias(name)
 	svc, found := cfg.Services[realName]
 	if !found {
-		return nil, errors.New(fmt.Sprintf("service %s not found", name))
+		return nil, "", errors.New(fmt.Sprintf("service %s not found", name))
 	}
 
-	return &svc, nil
+	return &svc, realName, nil
 }
 
 func (cfg *MainConfig) FindTemplateByName(name string) (*TemplateConfig, error) {
