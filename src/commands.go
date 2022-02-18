@@ -269,10 +269,15 @@ func CmdServiceStop(homeConfigPath string, args []string) error {
 			if err != nil {
 				return err
 			}
-
-			err = svc.Stop()
+			running, err := svc.IsRunning()
 			if err != nil {
 				return err
+			}
+			if running {
+				err = svc.Stop()
+				if err != nil {
+					return err
+				}
 			}
 		}
 	} else {
