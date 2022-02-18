@@ -105,6 +105,20 @@ func (mr *MockPCMockRecorder) FileExists(filepath interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FileExists", reflect.TypeOf((*MockPC)(nil).FileExists), filepath)
 }
 
+// Getuid mocks base method.
+func (m *MockPC) Getuid() int {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Getuid")
+	ret0, _ := ret[0].(int)
+	return ret0
+}
+
+// Getuid indicates an expected call of Getuid.
+func (mr *MockPCMockRecorder) Getuid() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Getuid", reflect.TypeOf((*MockPC)(nil).Getuid))
+}
+
 // Getwd mocks base method.
 func (m *MockPC) Getwd() (string, error) {
 	m.ctrl.T.Helper()

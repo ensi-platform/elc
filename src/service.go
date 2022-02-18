@@ -203,18 +203,30 @@ func (svc *Service) startDependencies(params *SvcStartParams) error {
 }
 
 func (svc *Service) Stop() error {
-	_, err := svc.execComposeInteractive([]string{"stop"})
+	running, err := svc.IsRunning()
 	if err != nil {
 		return err
+	}
+	if running {
+		_, err = svc.execComposeInteractive([]string{"stop"})
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
 func (svc *Service) Destroy() error {
-	_, err := svc.execComposeInteractive([]string{"down"})
+	running, err := svc.IsRunning()
 	if err != nil {
 		return err
+	}
+	if running {
+		_, err := svc.execComposeInteractive([]string{"down"})
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

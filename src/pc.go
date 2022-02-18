@@ -16,6 +16,7 @@ type PC interface {
 	Args() []string
 	Exit(code int)
 	HomeDir() (string, error)
+	Getuid() int
 	Getwd() (dir string, err error)
 	FileExists(filepath string) bool
 	ReadFile(filename string) ([]byte, error)
@@ -67,6 +68,10 @@ func (r *RealPC) HomeDir() (string, error) {
 	}
 
 	return currentUser.HomeDir, nil
+}
+
+func (r *RealPC) Getuid() int {
+	return os.Getuid()
 }
 
 func (r *RealPC) Getwd() (dir string, err error) {

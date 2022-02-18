@@ -1,5 +1,7 @@
 #  ELC - orchestrator of development environments
 
+[![Test](https://github.com/MadridianFox/ensi-local-ctl/actions/workflows/test.yml/badge.svg)](https://github.com/MadridianFox/ensi-local-ctl/actions/workflows/test.yml)
+
 With ELC you can:
 * start a couple of docker-compose projects with one command
 * define dependencies across docker-compose projects

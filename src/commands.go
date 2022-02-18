@@ -55,7 +55,7 @@ func addComposeFlags(fs *flag.FlagSet, params *SvcComposeParams) {
 }
 
 func addExecFlags(fs *flag.FlagSet, params *SvcExecParams) {
-	fs.IntVar(&params.UID, "uid", os.Getuid(), "user id")
+	fs.IntVar(&params.UID, "uid", Pc.Getuid(), "user id")
 }
 
 func CmdWorkspaceList(homeConfigPath string, args []string) error {
@@ -269,15 +269,9 @@ func CmdServiceStop(homeConfigPath string, args []string) error {
 			if err != nil {
 				return err
 			}
-			running, err := svc.IsRunning()
+			err = svc.Stop()
 			if err != nil {
 				return err
-			}
-			if running {
-				err = svc.Stop()
-				if err != nil {
-					return err
-				}
 			}
 		}
 	} else {

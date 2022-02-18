@@ -176,6 +176,26 @@ func expectStartService(mockPC *MockPC, composeFilePath string) {
 		Return(0, nil)
 }
 
+func expectStopService(mockPC *MockPC, composeFilePath string) {
+	mockPC.EXPECT().
+		ExecToString([]string{"docker", "compose", "-f", composeFilePath, "ps", "--status=running", "-q"}, gomock.Any()).
+		Return(0, "asdasd", nil)
+
+	mockPC.EXPECT().
+		ExecInteractive([]string{"docker", "compose", "-f", composeFilePath, "stop"}, gomock.Any()).
+		Return(0, nil)
+}
+
+func expectDestroyService(mockPC *MockPC, composeFilePath string) {
+	mockPC.EXPECT().
+		ExecToString([]string{"docker", "compose", "-f", composeFilePath, "ps", "--status=running", "-q"}, gomock.Any()).
+		Return(0, "asdasd", nil)
+
+	mockPC.EXPECT().
+		ExecInteractive([]string{"docker", "compose", "-f", composeFilePath, "down"}, gomock.Any()).
+		Return(0, nil)
+}
+
 func TestServiceStartWithDeps(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -239,9 +259,7 @@ func TestServiceStop(t *testing.T) {
 	expectReadHomeConfig(mockPC)
 	expectReadWorkspaceConfig(mockPC, fakeWorkspacePath, workspaceConfigWithDeps, "")
 
-	mockPC.EXPECT().
-		ExecInteractive([]string{"docker", "compose", "-f", path.Join(fakeWorkspacePath, "apps/test/docker-compose.yml"), "stop"}, gomock.Any()).
-		Return(0, nil)
+	expectStopService(mockPC, path.Join(fakeWorkspacePath, "apps/test/docker-compose.yml"))
 
 	_ = CmdServiceStop(fakeHomeConfigPath, []string{})
 
@@ -249,9 +267,7 @@ func TestServiceStop(t *testing.T) {
 	expectReadHomeConfig(mockPC)
 	expectReadWorkspaceConfig(mockPC, fakeWorkspacePath, workspaceConfigWithDeps, "")
 
-	mockPC.EXPECT().
-		ExecInteractive([]string{"docker", "compose", "-f", path.Join(fakeWorkspacePath, "apps/dep1/docker-compose.yml"), "stop"}, gomock.Any()).
-		Return(0, nil)
+	expectStopService(mockPC, path.Join(fakeWorkspacePath, "apps/dep1/docker-compose.yml"))
 
 	_ = CmdServiceStop(fakeHomeConfigPath, []string{"dep1"})
 
@@ -259,12 +275,8 @@ func TestServiceStop(t *testing.T) {
 	expectReadHomeConfig(mockPC)
 	expectReadWorkspaceConfig(mockPC, fakeWorkspacePath, workspaceConfigWithDeps, "")
 
-	mockPC.EXPECT().
-		ExecInteractive([]string{"docker", "compose", "-f", path.Join(fakeWorkspacePath, "apps/dep1/docker-compose.yml"), "stop"}, gomock.Any()).
-		Return(0, nil)
-	mockPC.EXPECT().
-		ExecInteractive([]string{"docker", "compose", "-f", path.Join(fakeWorkspacePath, "apps/dep2/docker-compose.yml"), "stop"}, gomock.Any()).
-		Return(0, nil)
+	expectStopService(mockPC, path.Join(fakeWorkspacePath, "apps/dep1/docker-compose.yml"))
+	expectStopService(mockPC, path.Join(fakeWorkspacePath, "apps/dep2/docker-compose.yml"))
 
 	_ = CmdServiceStop(fakeHomeConfigPath, []string{"dep1", "dep2"})
 
@@ -272,18 +284,10 @@ func TestServiceStop(t *testing.T) {
 	expectReadHomeConfig(mockPC)
 	expectReadWorkspaceConfig(mockPC, fakeWorkspacePath, workspaceConfigWithDeps, "")
 
-	mockPC.EXPECT().
-		ExecInteractive([]string{"docker", "compose", "-f", path.Join(fakeWorkspacePath, "apps/dep1/docker-compose.yml"), "stop"}, gomock.Any()).
-		Return(0, nil)
-	mockPC.EXPECT().
-		ExecInteractive([]string{"docker", "compose", "-f", path.Join(fakeWorkspacePath, "apps/dep2/docker-compose.yml"), "stop"}, gomock.Any()).
-		Return(0, nil)
-	mockPC.EXPECT().
-		ExecInteractive([]string{"docker", "compose", "-f", path.Join(fakeWorkspacePath, "apps/dep3/docker-compose.yml"), "stop"}, gomock.Any()).
-		Return(0, nil)
-	mockPC.EXPECT().
-		ExecInteractive([]string{"docker", "compose", "-f", path.Join(fakeWorkspacePath, "apps/test/docker-compose.yml"), "stop"}, gomock.Any()).
-		Return(0, nil)
+	expectStopService(mockPC, path.Join(fakeWorkspacePath, "apps/dep1/docker-compose.yml"))
+	expectStopService(mockPC, path.Join(fakeWorkspacePath, "apps/dep2/docker-compose.yml"))
+	expectStopService(mockPC, path.Join(fakeWorkspacePath, "apps/dep3/docker-compose.yml"))
+	expectStopService(mockPC, path.Join(fakeWorkspacePath, "apps/test/docker-compose.yml"))
 
 	_ = CmdServiceStop(fakeHomeConfigPath, []string{"--all"})
 }
@@ -299,9 +303,7 @@ func TestServiceDestroy(t *testing.T) {
 	expectReadHomeConfig(mockPC)
 	expectReadWorkspaceConfig(mockPC, fakeWorkspacePath, workspaceConfigWithDeps, "")
 
-	mockPC.EXPECT().
-		ExecInteractive([]string{"docker", "compose", "-f", path.Join(fakeWorkspacePath, "apps/test/docker-compose.yml"), "down"}, gomock.Any()).
-		Return(0, nil)
+	expectDestroyService(mockPC, path.Join(fakeWorkspacePath, "apps/test/docker-compose.yml"))
 
 	_ = CmdServiceDestroy(fakeHomeConfigPath, []string{})
 
@@ -309,9 +311,7 @@ func TestServiceDestroy(t *testing.T) {
 	expectReadHomeConfig(mockPC)
 	expectReadWorkspaceConfig(mockPC, fakeWorkspacePath, workspaceConfigWithDeps, "")
 
-	mockPC.EXPECT().
-		ExecInteractive([]string{"docker", "compose", "-f", path.Join(fakeWorkspacePath, "apps/dep1/docker-compose.yml"), "down"}, gomock.Any()).
-		Return(0, nil)
+	expectDestroyService(mockPC, path.Join(fakeWorkspacePath, "apps/dep1/docker-compose.yml"))
 
 	_ = CmdServiceDestroy(fakeHomeConfigPath, []string{"dep1"})
 
@@ -319,12 +319,8 @@ func TestServiceDestroy(t *testing.T) {
 	expectReadHomeConfig(mockPC)
 	expectReadWorkspaceConfig(mockPC, fakeWorkspacePath, workspaceConfigWithDeps, "")
 
-	mockPC.EXPECT().
-		ExecInteractive([]string{"docker", "compose", "-f", path.Join(fakeWorkspacePath, "apps/dep1/docker-compose.yml"), "down"}, gomock.Any()).
-		Return(0, nil)
-	mockPC.EXPECT().
-		ExecInteractive([]string{"docker", "compose", "-f", path.Join(fakeWorkspacePath, "apps/dep2/docker-compose.yml"), "down"}, gomock.Any()).
-		Return(0, nil)
+	expectDestroyService(mockPC, path.Join(fakeWorkspacePath, "apps/dep1/docker-compose.yml"))
+	expectDestroyService(mockPC, path.Join(fakeWorkspacePath, "apps/dep2/docker-compose.yml"))
 
 	_ = CmdServiceDestroy(fakeHomeConfigPath, []string{"dep1", "dep2"})
 
@@ -332,18 +328,10 @@ func TestServiceDestroy(t *testing.T) {
 	expectReadHomeConfig(mockPC)
 	expectReadWorkspaceConfig(mockPC, fakeWorkspacePath, workspaceConfigWithDeps, "")
 
-	mockPC.EXPECT().
-		ExecInteractive([]string{"docker", "compose", "-f", path.Join(fakeWorkspacePath, "apps/dep1/docker-compose.yml"), "down"}, gomock.Any()).
-		Return(0, nil)
-	mockPC.EXPECT().
-		ExecInteractive([]string{"docker", "compose", "-f", path.Join(fakeWorkspacePath, "apps/dep2/docker-compose.yml"), "down"}, gomock.Any()).
-		Return(0, nil)
-	mockPC.EXPECT().
-		ExecInteractive([]string{"docker", "compose", "-f", path.Join(fakeWorkspacePath, "apps/dep3/docker-compose.yml"), "down"}, gomock.Any()).
-		Return(0, nil)
-	mockPC.EXPECT().
-		ExecInteractive([]string{"docker", "compose", "-f", path.Join(fakeWorkspacePath, "apps/test/docker-compose.yml"), "down"}, gomock.Any()).
-		Return(0, nil)
+	expectDestroyService(mockPC, path.Join(fakeWorkspacePath, "apps/dep1/docker-compose.yml"))
+	expectDestroyService(mockPC, path.Join(fakeWorkspacePath, "apps/dep2/docker-compose.yml"))
+	expectDestroyService(mockPC, path.Join(fakeWorkspacePath, "apps/dep3/docker-compose.yml"))
+	expectDestroyService(mockPC, path.Join(fakeWorkspacePath, "apps/test/docker-compose.yml"))
 
 	_ = CmdServiceDestroy(fakeHomeConfigPath, []string{"--all"})
 }
@@ -359,9 +347,7 @@ func TestServiceRestart(t *testing.T) {
 	expectReadHomeConfig(mockPC)
 	expectReadWorkspaceConfig(mockPC, fakeWorkspacePath, workspaceConfigWithDeps, "")
 
-	mockPC.EXPECT().
-		ExecInteractive([]string{"docker", "compose", "-f", path.Join(fakeWorkspacePath, "apps/test/docker-compose.yml"), "stop"}, gomock.Any()).
-		Return(0, nil)
+	expectStopService(mockPC, path.Join(fakeWorkspacePath, "apps/test/docker-compose.yml"))
 	expectStartService(mockPC, path.Join(fakeWorkspacePath, "apps/test/docker-compose.yml"))
 
 	_ = CmdServiceRestart(fakeHomeConfigPath, []string{})
@@ -370,9 +356,7 @@ func TestServiceRestart(t *testing.T) {
 	expectReadHomeConfig(mockPC)
 	expectReadWorkspaceConfig(mockPC, fakeWorkspacePath, workspaceConfigWithDeps, "")
 
-	mockPC.EXPECT().
-		ExecInteractive([]string{"docker", "compose", "-f", path.Join(fakeWorkspacePath, "apps/dep1/docker-compose.yml"), "stop"}, gomock.Any()).
-		Return(0, nil)
+	expectStopService(mockPC, path.Join(fakeWorkspacePath, "apps/dep1/docker-compose.yml"))
 	expectStartService(mockPC, path.Join(fakeWorkspacePath, "apps/dep1/docker-compose.yml"))
 
 	_ = CmdServiceRestart(fakeHomeConfigPath, []string{"dep1"})
@@ -381,9 +365,7 @@ func TestServiceRestart(t *testing.T) {
 	expectReadHomeConfig(mockPC)
 	expectReadWorkspaceConfig(mockPC, fakeWorkspacePath, workspaceConfigWithDeps, "")
 
-	mockPC.EXPECT().
-		ExecInteractive([]string{"docker", "compose", "-f", path.Join(fakeWorkspacePath, "apps/test/docker-compose.yml"), "down"}, gomock.Any()).
-		Return(0, nil)
+	expectDestroyService(mockPC, path.Join(fakeWorkspacePath, "apps/test/docker-compose.yml"))
 	expectStartService(mockPC, path.Join(fakeWorkspacePath, "apps/test/docker-compose.yml"))
 
 	_ = CmdServiceRestart(fakeHomeConfigPath, []string{"--hard"})
@@ -425,6 +407,7 @@ func TestServiceExec(t *testing.T) {
 	Pc = mockPC
 
 	// simple
+	mockPC.EXPECT().Getuid().Return(1000)
 	expectReadHomeConfig(mockPC)
 	expectReadWorkspaceConfig(mockPC, fakeWorkspacePath, workspaceConfig, "")
 
@@ -439,6 +422,7 @@ func TestServiceExec(t *testing.T) {
 	_, _ = CmdServiceExec(fakeHomeConfigPath, []string{"some", "command"})
 
 	// without tty
+	mockPC.EXPECT().Getuid().Return(1000)
 	expectReadHomeConfig(mockPC)
 	expectReadWorkspaceConfig(mockPC, fakeWorkspacePath, workspaceConfig, "")
 
@@ -453,6 +437,7 @@ func TestServiceExec(t *testing.T) {
 	_, _ = CmdServiceExec(fakeHomeConfigPath, []string{"some", "command"})
 
 	// with uid
+	mockPC.EXPECT().Getuid().Return(1000)
 	expectReadHomeConfig(mockPC)
 	expectReadWorkspaceConfig(mockPC, fakeWorkspacePath, workspaceConfig, "")
 
