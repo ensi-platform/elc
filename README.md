@@ -51,14 +51,13 @@ services:
     variables:
       VAR1: ${VAR1:-default}
     dependencies:
-      proxy:    [dev]
-      database: [dev, test]
+      proxy:    [default]
+      database: [default, hook]
 ```
 
 Register workspace in elc:
 ```bash
 $ elc workspace add ensi /path/to/workspace/
-$ elc workspace select ensi
 ```
 
 Start some services:
