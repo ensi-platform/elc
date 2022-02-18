@@ -1,0 +1,42 @@
+name: elc-example-2
+variables:
+  DEFAULT_APPS_ROOT: ${WORKSPACE_PATH}/apps
+  APPS_ROOT: ${APPS_ROOT:-$DEFAULT_APPS_ROOT}
+  NETWORK: ${NETWORK:-example}
+  BASE_DOMAIN: ${BASE_DOMAIN:-example.127.0.0.1.nip.io}
+  GROUP_ID: ${GROUP_ID:-1000}
+  USER_ID: ${USER_ID:-1000}
+  HOME_PATH: ${WORKSPACE_PATH}/home
+
+  APP1_HOST: app1.${BASE_DOMAIN}
+  APP1_PATH: ${APPS_ROOT}/app1
+  APP1_MOUNT_PATH: /var/www/app1
+
+  APP2_HOST: app2.${BASE_DOMAIN}
+  APP2_PATH: ${APPS_ROOT}/app2
+  APP2_MOUNT_PATH: /var/www/app2
+
+
+services:
+  proxy:
+    path: ${WORKSPACE_PATH}/infra/proxy
+    variables:
+      APP_IMAGE: jwilder/nginx-proxy:latest
+  fpm:
+    path: ${WORKSPACE_PATH}/infra/fpm
+    variables:
+      APP_IMAGE: fpm-8.1:latest
+      BASE_IMAGE: php:8.1-fpm-alpine
+      NGINX_IMAGE: nginx:1.19-alpine
+    dependencies:
+      proxy: [default]
+
+modules:
+  app1:
+    path: ${APP1_PATH}
+    hosted_in: fpm
+    exec_path: ${APP1_MOUNT_PATH}
+  app2:
+    path: ${APP2_PATH}
+    hosted_in: fpm
+    exec_path: ${APP2_MOUNT_PATH}

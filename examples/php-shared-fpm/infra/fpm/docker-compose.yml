@@ -1,0 +1,49 @@
+services:
+  app:
+    image: $WORKSPACE_NAME/$APP_IMAGE
+    build:
+      context: $SVC_PATH/php
+      args:
+        - BASE_IMAGE=$BASE_IMAGE
+        - GROUP_ID=$GROUP_ID
+        - USER_ID=$USER_ID
+    hostname: "$APP_NAME.$BASE_DOMAIN"
+    networks:
+      dev:
+        aliases:
+          - "${APP1_HOST}"
+          - "${APP2_HOST}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "${APP1_HOST}:127.0.0.1"
+      - "${APP2_HOST}:127.0.0.1"
+    environment:
+      VIRTUAL_HOST: "${APP1_HOST},${APP2_HOST}"
+      VIRTUAL_PORT: "80"
+      HOME: /tmp/home
+      COMPOSER_HOME: /tmp/home/composer
+      COMPOSER_CACHE_DIR: /tmp/home/composer_cache
+    working_dir: /var/www
+    volumes:
+      - "$HOME_PATH:/tmp/home"
+      - "${APP1_PATH}:${APP1_MOUNT_PATH}"
+      - "${APP2_PATH}:${APP2_MOUNT_PATH}"
+  nginx:
+    image: $NGINX_IMAGE
+    environment:
+      APP1_HOST: ${APP1_HOST}
+      APP1_MOUNT_PATH: ${APP1_MOUNT_PATH}
+      APP2_HOST: ${APP2_HOST}
+      APP2_MOUNT_PATH: ${APP2_MOUNT_PATH}
+    volumes:
+      - "$SVC_PATH/nginx:/etc/nginx/templates"
+      - "${APP1_PATH}:${APP1_MOUNT_PATH}"
+      - "${APP2_PATH}:${APP2_MOUNT_PATH}"
+    network_mode: "service:app"
+    depends_on:
+      - app
+
+networks:
+  dev:
+    external: true
+    name: $NETWORK
