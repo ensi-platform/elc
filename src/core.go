@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+const Version = "0.1.5-beta.10"
+
 type Context [][]string
 
 func (ctx *Context) find(name string) (string, bool) {

@@ -23,6 +23,7 @@ func main() {
 		fmt.Sprintf("  %-20s - %s", elc.Color("vars", elc.CYellow), "print variables"),
 		fmt.Sprintf("  %-20s - %s", elc.Color("workspace", elc.CYellow), "manage workspaces"),
 		fmt.Sprintf("  %-20s - %s", elc.Color("update", elc.CYellow), "download new version of elc and replace current binary"),
+		fmt.Sprintf("  %-20s - %s", elc.Color("version", elc.CYellow), "print version"),
 		"Any other arguments will be used for invoke of implicit exec command.",
 		"",
 		"You can get help for any command invoke it with '--help' option.",
@@ -72,6 +73,8 @@ func main() {
 		returnCode, err = elc.CmdServiceExec(homeConfigPath, args[2:])
 	case "update":
 		err = elc.CmdUpdate(homeConfigPath, args[2:])
+	case "version":
+		elc.CmdVersion()
 	default:
 		returnCode, err = elc.CmdServiceExec(homeConfigPath, args[1:])
 	}

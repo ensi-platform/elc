@@ -3,6 +3,7 @@ package src
 import (
 	"errors"
 	"fmt"
+	"github.com/hashicorp/go-version"
 	"gopkg.in/yaml.v2"
 	"path"
 	"strings"
@@ -19,6 +20,7 @@ type CoreConfig struct {
 type MainConfig struct {
 	CoreConfig    `yaml:",inline"`
 	Name          string     `yaml:"name"`
+	ElcMinVersion string     `yaml:"elc_min_version"`
 	LocalConfig   CoreConfig `yaml:"-"`
 	WorkspacePath string     `yaml:"-"`
 	Cwd           string     `yaml:"-"`
@@ -63,6 +65,26 @@ func (cfg *MainConfig) LoadFromFile() error {
 			return err
 		}
 		cfg.mergeLocalValues()
+	}
+
+	return nil
+}
+
+func (cfg *MainConfig) checkVersion() error {
+	if cfg.ElcMinVersion == "" {
+		return nil
+	}
+	vCfg, err := version.NewVersion(cfg.ElcMinVersion)
+	if err != nil {
+		return err
+	}
+	vElc, err := version.NewVersion(Version)
+	if err != nil {
+		return err
+	}
+
+	if vElc.LessThanOrEqual(vCfg) {
+		return errors.New(fmt.Sprintf("This workspace requires elc version %s. Please, update elc or use another binary.", cfg.ElcMinVersion))
 	}
 
 	return nil

@@ -1,4 +1,5 @@
 name: elc-example-1
+elc_min_version: 0.1.4
 variables:
   DEFAULT_APPS_ROOT: ${WORKSPACE_PATH}/apps
   APPS_ROOT: ${APPS_ROOT:-$DEFAULT_APPS_ROOT}

@@ -3,6 +3,7 @@
 all: build
 
 build: deps
+	./version.sh
 	go build -o build/elc main.go
 
 deps:

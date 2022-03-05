@@ -42,6 +42,11 @@ func getWorkspaceConfig(homeConfigPath string) (*MainConfig, error) {
 		return nil, err
 	}
 
+	err = cfg.checkVersion()
+	if err != nil {
+		return nil, err
+	}
+
 	return cfg, nil
 }
 
@@ -175,6 +180,10 @@ func CmdWorkspaceHelp() error {
 		fmt.Sprintf("  %-18s - %s", Color("select", CYellow), "select workspace as current"),
 	})
 	return nil
+}
+
+func CmdVersion() {
+	fmt.Printf("v%s\n", Version)
 }
 
 func CmdServiceStart(homeConfigPath string, args []string) error {
