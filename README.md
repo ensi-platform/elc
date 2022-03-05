@@ -17,6 +17,20 @@ curl -sSL https://raw.githubusercontent.com/MadridianFox/ensi-local-ctl/master/g
 elc --help
 ```
 
+## Build from source
+
+Dependencies:
+- go
+- make
+
+```bash
+git clone git@github.com:MadridianFox/ensi-local-ctl.git
+cd ensi-local-ctl
+
+make
+make install
+```
+
 ## How to use
 
 [Full documentation (ru)](https://greensight.atlassian.net/wiki/spaces/ENSI/pages/540246017/ELC)
