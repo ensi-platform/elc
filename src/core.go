@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const Version = "0.1.5-beta.10"
+const Version = "0.1.6-beta.2"
 
 type Context [][]string
 
