@@ -1,7 +1,6 @@
 package src
 
 import (
-	"fmt"
 	"gopkg.in/yaml.v2"
 )
 
@@ -21,15 +20,6 @@ type ModuleConfig struct {
 	Path     string `yaml:"path"`
 	HostedIn string `yaml:"hosted_in"`
 	ExecPath string `yaml:"exec_path"`
-}
-
-func (svcCfg *TemplateConfig) GetEnv() []string {
-	var env []string
-	for _, pair := range svcCfg.Variables {
-		env = append(env, fmt.Sprintf("%s=%s", pair.Key.(string), pair.Value.(string)))
-	}
-
-	return env
 }
 
 func (svcCfg *ServiceConfig) GetDeps(mode string) []string {
