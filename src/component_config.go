@@ -21,6 +21,7 @@ type ComponentConfig struct {
 	Extends      string              `yaml:"extends"`
 	HostedIn     string              `yaml:"hosted_in"`
 	Hostname     string              `yaml:"hostname"`
+	IsTemplate   bool                `yaml:"is_template"`
 	Path         string              `yaml:"path"`
 	Replace      bool                `yaml:"replace"`
 	Variables    yaml.MapSlice       `yaml:"variables"`

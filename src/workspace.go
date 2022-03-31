@@ -15,6 +15,7 @@ type Workspace struct {
 	Cwd        string
 	WillStart  []string
 	Context    *Context
+	Components map[string]*Component
 }
 
 func NewWorkspace(wsPath string, cwd string) *Workspace {
@@ -56,6 +57,17 @@ func (ws *Workspace) init() error {
 	}
 
 	ws.Context = ctx
+	ws.Components = make(map[string]*Component)
+	for compName, compCfg := range ws.Config.Components {
+		ws.Components[compName] = NewComponent(compName, &compCfg, ws)
+	}
+
+	for _, comp := range ws.Components {
+		err := comp.init()
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -95,4 +107,47 @@ func (ws *Workspace) createContext() (*Context, error) {
 	}
 
 	return &ctx, nil
+}
+
+func (ws *Workspace) componentByName(name string) (*Component, error) {
+	comp, found := ws.Components[name]
+	if !found {
+		return nil, errors.New(fmt.Sprintf("service '%s' not found", name))
+	}
+	return comp, nil
+}
+
+func (ws *Workspace) componentByPath() (*Component, error) {
+	for _, comp := range ws.Components {
+		compPath, found := comp.Context.find("SVC_PATH")
+		if found {
+			if strings.HasPrefix(compPath, ws.Cwd) {
+				return comp, nil
+			}
+		}
+	}
+	return nil, errors.New(fmt.Sprintf("you are not in component folder"))
+}
+
+func (ws *Workspace) componentNameByPath() (string, error) {
+	for name, comp := range ws.Components {
+		compPath, found := comp.Context.find("SVC_PATH")
+		if found {
+			if strings.HasPrefix(compPath, ws.Cwd) {
+				return name, nil
+			}
+		}
+	}
+	return "", errors.New(fmt.Sprintf("you are not in component folder"))
+}
+
+func (ws *Workspace) getComponentNames() []string {
+	result := make([]string, 1)
+	for name, comp := range ws.Components {
+		if !comp.Config.IsTemplate {
+			result = append(result, name)
+		}
+	}
+
+	return result
 }

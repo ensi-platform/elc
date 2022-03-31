@@ -21,6 +21,10 @@ type WorkspaceConfig struct {
 }
 
 func (wsc *WorkspaceConfig) normalize() {
+	if wsc.Components == nil {
+		wsc.Components = make(map[string]ComponentConfig)
+	}
+
 	for k, v := range wsc.Templates {
 		wsc.Components[k] = v
 	}
@@ -65,6 +69,8 @@ func (wsc *WorkspaceConfig) loadFromFile(wscPath string) error {
 	if err != nil {
 		return err
 	}
+
+	wsc.normalize()
 
 	return nil
 }

@@ -20,7 +20,7 @@ func checkAndLoadHC(homeConfigPath string) (*HomeConfig, error) {
 	return hc, nil
 }
 
-func getWorkspaceConfig(homeConfigPath string) (*MainConfig, error) {
+func getWorkspaceConfig(homeConfigPath string) (*Workspace, error) {
 	hc, err := checkAndLoadHC(homeConfigPath)
 	if err != nil {
 		return nil, err
@@ -35,19 +35,24 @@ func getWorkspaceConfig(homeConfigPath string) (*MainConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+	ws := NewWorkspace(wsPath, cwd)
 
-	cfg := NewConfig(wsPath, cwd)
-	err = cfg.LoadFromFile()
+	err = ws.LoadConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	err = cfg.checkVersion()
+	err = ws.checkVersion()
 	if err != nil {
 		return nil, err
 	}
 
-	return cfg, nil
+	err = ws.init()
+	if err != nil {
+		return nil, err
+	}
+
+	return ws, nil
 }
 
 func addStartFlags(fs *flag.FlagSet, params *SvcStartParams) {
@@ -205,7 +210,7 @@ func CmdServiceStart(homeConfigPath string, args []string) error {
 		return err
 	}
 
-	cfg, err := getWorkspaceConfig(homeConfigPath)
+	ws, err := getWorkspaceConfig(homeConfigPath)
 	if err != nil {
 		return err
 	}
@@ -213,28 +218,23 @@ func CmdServiceStart(homeConfigPath string, args []string) error {
 	svcNames := fs.Args()
 	if len(svcNames) > 0 {
 		for _, svcName := range svcNames {
-			svc, err := CreateFromSvcName(cfg, svcName)
+			comp, err := ws.componentByName(svcName)
 			if err != nil {
 				return err
 			}
 
-			err = svc.Start(startParams)
+			err = comp.Start(startParams)
 			if err != nil {
 				return err
 			}
 		}
 	} else {
-		svcName, err := cfg.FindServiceByPath()
+		comp, err := ws.componentByPath()
 		if err != nil {
 			return err
 		}
 
-		svc, err := CreateFromSvcName(cfg, svcName)
-		if err != nil {
-			return err
-		}
-
-		err = svc.Start(startParams)
+		err = comp.Start(startParams)
 		if err != nil {
 			return err
 		}
@@ -253,7 +253,7 @@ func CmdServiceStop(homeConfigPath string, args []string) error {
 	}) {
 		return nil
 	}
-	cfg, err := getWorkspaceConfig(homeConfigPath)
+	ws, err := getWorkspaceConfig(homeConfigPath)
 	if err != nil {
 		return err
 	}
@@ -267,34 +267,29 @@ func CmdServiceStop(homeConfigPath string, args []string) error {
 
 	var svcNames []string
 	if *all {
-		svcNames = cfg.GetAllSvcNames()
+		svcNames = ws.getComponentNames()
 	} else {
 		svcNames = args
 	}
 
 	if len(svcNames) > 0 {
 		for _, svcName := range svcNames {
-			svc, err := CreateFromSvcName(cfg, svcName)
+			comp, err := ws.componentByName(svcName)
 			if err != nil {
 				return err
 			}
-			err = svc.Stop()
+			err = comp.Stop()
 			if err != nil {
 				return err
 			}
 		}
 	} else {
-		svcName, err := cfg.FindServiceByPath()
+		comp, err := ws.componentByPath()
 		if err != nil {
 			return err
 		}
 
-		svc, err := CreateFromSvcName(cfg, svcName)
-		if err != nil {
-			return err
-		}
-
-		err = svc.Stop()
+		err = comp.Stop()
 		if err != nil {
 			return err
 		}
@@ -313,7 +308,7 @@ func CmdServiceDestroy(homeConfigPath string, args []string) error {
 	}) {
 		return nil
 	}
-	cfg, err := getWorkspaceConfig(homeConfigPath)
+	ws, err := getWorkspaceConfig(homeConfigPath)
 	if err != nil {
 		return err
 	}
@@ -327,35 +322,30 @@ func CmdServiceDestroy(homeConfigPath string, args []string) error {
 
 	var svcNames []string
 	if *all {
-		svcNames = cfg.GetAllSvcNames()
+		svcNames = ws.getComponentNames()
 	} else {
 		svcNames = args
 	}
 
 	if len(svcNames) > 0 {
 		for _, svcName := range svcNames {
-			svc, err := CreateFromSvcName(cfg, svcName)
+			comp, err := ws.componentByName(svcName)
 			if err != nil {
 				return err
 			}
 
-			err = svc.Destroy()
+			err = comp.Destroy()
 			if err != nil {
 				return err
 			}
 		}
 	} else {
-		svcName, err := cfg.FindServiceByPath()
+		comp, err := ws.componentByPath()
 		if err != nil {
 			return err
 		}
 
-		svc, err := CreateFromSvcName(cfg, svcName)
-		if err != nil {
-			return err
-		}
-
-		err = svc.Destroy()
+		err = comp.Destroy()
 		if err != nil {
 			return err
 		}
@@ -382,7 +372,7 @@ func CmdServiceRestart(homeConfigPath string, args []string) error {
 		return err
 	}
 
-	cfg, err := getWorkspaceConfig(homeConfigPath)
+	ws, err := getWorkspaceConfig(homeConfigPath)
 	if err != nil {
 		return err
 	}
@@ -390,28 +380,23 @@ func CmdServiceRestart(homeConfigPath string, args []string) error {
 	svcNames := fs.Args()
 	if len(svcNames) > 0 {
 		for _, svcName := range svcNames {
-			svc, err := CreateFromSvcName(cfg, svcName)
+			comp, err := ws.componentByName(svcName)
 			if err != nil {
 				return err
 			}
 
-			err = svc.Restart(restartParams)
+			err = comp.Restart(restartParams)
 			if err != nil {
 				return err
 			}
 		}
 	} else {
-		svcName, err := cfg.FindServiceByPath()
+		comp, err := ws.componentByPath()
 		if err != nil {
 			return err
 		}
 
-		svc, err := CreateFromSvcName(cfg, svcName)
-		if err != nil {
-			return err
-		}
-
-		err = svc.Restart(restartParams)
+		err = comp.Restart(restartParams)
 		if err != nil {
 			return err
 		}
@@ -427,28 +412,25 @@ func CmdServiceVars(homeConfigPath string, args []string) error {
 	}) {
 		return nil
 	}
-	cfg, err := getWorkspaceConfig(homeConfigPath)
+	ws, err := getWorkspaceConfig(homeConfigPath)
 	if err != nil {
 		return err
 	}
-
-	var svcName string
+	var comp *Component
 
 	if len(args) > 0 {
-		svcName = args[0]
+		comp, err = ws.componentByName(args[0])
+		if err != nil {
+			return err
+		}
 	} else {
-		svcName, err = cfg.FindServiceByPath()
+		comp, err = ws.componentByPath()
 		if err != nil {
 			return err
 		}
 	}
 
-	svc, err := CreateFromSvcName(cfg, svcName)
-	if err != nil {
-		return err
-	}
-
-	err = svc.DumpVars()
+	err = comp.DumpVars()
 	if err != nil {
 		return err
 	}
@@ -476,24 +458,24 @@ func CmdServiceCompose(homeConfigPath string, args []string) (int, error) {
 
 	composeParams.Cmd = fs.Args()
 
-	cfg, err := getWorkspaceConfig(homeConfigPath)
+	ws, err := getWorkspaceConfig(homeConfigPath)
 	if err != nil {
 		return 0, err
 	}
 
 	if composeParams.SvcName == "" {
-		composeParams.SvcName, err = cfg.FindServiceByPath()
+		composeParams.SvcName, err = ws.componentNameByPath()
 		if err != nil {
 			return 0, err
 		}
 	}
 
-	svc, err := CreateFromSvcName(cfg, composeParams.SvcName)
+	comp, err := ws.componentByName(composeParams.SvcName)
 	if err != nil {
 		return 0, err
 	}
 
-	returnCode, err := svc.Compose(composeParams)
+	returnCode, err := comp.Compose(composeParams)
 	if err != nil {
 		return 0, err
 	}
@@ -526,43 +508,41 @@ func CmdServiceExec(homeConfigPath string, args []string) (int, error) {
 
 	execParams.Cmd = fs.Args()
 
-	cfg, err := getWorkspaceConfig(homeConfigPath)
+	ws, err := getWorkspaceConfig(homeConfigPath)
 	if err != nil {
 		return 0, err
 	}
 
-	var mdl *ModuleConfig
+	var comp *Component
 
 	if execParams.SvcName == "" {
-		mdl, err = cfg.FindModuleByPath()
-		if err == nil {
-			execParams.SvcName = mdl.HostedIn
-		} else {
-			execParams.SvcName, err = cfg.FindServiceByPath()
-			if err != nil {
-				return 0, err
-			}
-		}
+		comp, err = ws.componentByPath()
 	} else {
-		mdl, err := cfg.FindModuleByName(execParams.SvcName)
-		if err == nil {
-			execParams.SvcName = mdl.HostedIn
-		}
+		comp, err = ws.componentByName(execParams.SvcName)
+	}
+	if err != nil {
+		return 0, err
 	}
 
-	if mdl != nil {
-		execParams.WorkingDir, err = cfg.renderPath(mdl.ExecPath)
+	if comp.Config.HostedIn != "" {
+		execParams.SvcName = comp.Config.HostedIn
+	} else {
+		execParams.SvcName = comp.Name
+	}
+
+	if comp.Config.ExecPath != "" {
+		execParams.WorkingDir, err = ws.Context.renderString(comp.Config.ExecPath)
 		if err != nil {
 			return 0, err
 		}
 	}
 
-	svc, err := CreateFromSvcName(cfg, execParams.SvcName)
+	hostComp, err := ws.componentByName(execParams.SvcName)
 	if err != nil {
 		return 0, err
 	}
 
-	returnCode, err := svc.Exec(execParams)
+	returnCode, err := hostComp.Exec(execParams)
 	if err != nil {
 		return 0, err
 	}
