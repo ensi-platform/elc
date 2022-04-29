@@ -1,13 +1,13 @@
 #  ELC - Ensi Local Ctl
 
-[![Test](https://github.com/ensi-platform/ensi-local-ctl/actions/workflows/test.yml/badge.svg)](https://github.com/ensi-platform/ensi-local-ctl/actions/workflows/test.yml)
+[![Test](https://github.com/ensi-platform/elc/actions/workflows/test.yml/badge.svg)](https://github.com/ensi-platform/elc/actions/workflows/test.yml)
 
 ELC - инструмент для развёртывания микросервисов на машине разработчика.
 
 ## Установка
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/ensi-platform/ensi-local-ctl/master/get.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/ensi-platform/elc/master/get.sh | sudo bash
 
 elc --help
 ```
@@ -19,8 +19,8 @@ elc --help
 - make
 
 ```bash
-git clone git@github.com:ensi-platform/ensi-local-ctl.git
-cd ensi-local-ctl
+git clone git@github.com:ensi-platform/elc.git
+cd elc
 
 make
 make install

@@ -2,7 +2,7 @@
 
 export PROGRAM_NAME="elc"
 export OWNER="ensi-platform"
-export REPO="ensi-local-ctl"
+export REPO="elc"
 export BIN_LOCATION="/opt/elc"
 export LINK_LOCATION="/usr/local/bin"
 
