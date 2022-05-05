@@ -24,8 +24,8 @@ func NewComponent(compName string, compCfg *ComponentConfig, ws *Workspace) *Com
 }
 
 func (comp *Component) init() error {
-	ctx := make(Context, 0)
-	ctx.append(comp.Workspace.Context)
+	ctx := make(Context, len(*comp.Workspace.Context))
+	copy(ctx, *comp.Workspace.Context)
 
 	ctx = ctx.add("APP_NAME", comp.Name)
 	ctx = ctx.add("COMPOSE_PROJECT_NAME", fmt.Sprintf("%s-%s", comp.Workspace.Config.Name, comp.Name))

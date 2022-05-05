@@ -28,7 +28,7 @@ func NewWorkspace(wsPath string, cwd string) *Workspace {
 }
 
 func (ws *Workspace) LoadConfig() error {
-	wsc := WorkspaceConfig{}
+	wsc := *NewWorkspaceConfig()
 	err := wsc.loadFromFile(path.Join(ws.ConfigPath, "workspace.yaml"))
 	if err != nil {
 		return err
@@ -36,8 +36,8 @@ func (ws *Workspace) LoadConfig() error {
 
 	envPath := path.Join(ws.ConfigPath, "env.yaml")
 	if Pc.FileExists(envPath) {
-		envWsc := WorkspaceConfig{}
-		err := wsc.loadFromFile(envPath)
+		envWsc := *NewWorkspaceConfig()
+		err := envWsc.loadFromFile(envPath)
 		if err != nil {
 			return err
 		}
@@ -58,7 +58,8 @@ func (ws *Workspace) init() error {
 
 	ws.Context = ctx
 	ws.Components = make(map[string]*Component)
-	for compName, compCfg := range ws.Config.Components {
+	for compName := range ws.Config.Components {
+		compCfg, _ := ws.Config.Components[compName]
 		ws.Components[compName] = NewComponent(compName, &compCfg, ws)
 	}
 
@@ -142,7 +143,7 @@ func (ws *Workspace) componentNameByPath() (string, error) {
 }
 
 func (ws *Workspace) getComponentNames() []string {
-	result := make([]string, 1)
+	result := make([]string, 0)
 	for name, comp := range ws.Components {
 		if !comp.Config.IsTemplate {
 			result = append(result, name)

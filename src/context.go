@@ -33,12 +33,6 @@ func (ctx *Context) add(name string, value string) Context {
 	return append(tmp, []string{name, value})
 }
 
-func (ctx *Context) append(ctx2 *Context) {
-	for _, pair := range *ctx2 {
-		ctx.add(pair[0], pair[1])
-	}
-}
-
 func (ctx *Context) renderString(str string) (string, error) {
 	return substVars(str, ctx)
 }

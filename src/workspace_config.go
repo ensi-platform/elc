@@ -20,11 +20,17 @@ type WorkspaceConfig struct {
 	Modules map[string]ComponentConfig `yaml:"modules"`
 }
 
-func (wsc *WorkspaceConfig) normalize() {
-	if wsc.Components == nil {
-		wsc.Components = make(map[string]ComponentConfig)
+func NewWorkspaceConfig() *WorkspaceConfig {
+	return &WorkspaceConfig{
+		Aliases:    make(map[string]string, 0),
+		Components: make(map[string]ComponentConfig, 0),
+		Templates:  make(map[string]ComponentConfig, 0),
+		Services:   make(map[string]ComponentConfig, 0),
+		Modules:    make(map[string]ComponentConfig, 0),
 	}
+}
 
+func (wsc *WorkspaceConfig) normalize() {
 	for k, v := range wsc.Templates {
 		wsc.Components[k] = v
 	}
