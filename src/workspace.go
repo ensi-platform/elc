@@ -20,6 +20,7 @@ type Workspace struct {
 
 func NewWorkspace(wsPath string, cwd string) *Workspace {
 	ws := Workspace{
+		Aliases:    make(map[string]string, 0),
 		ConfigPath: wsPath,
 		Cwd:        cwd,
 	}
@@ -70,6 +71,10 @@ func (ws *Workspace) init() error {
 		}
 	}
 
+	for name, realName := range ws.Config.Aliases {
+		ws.Aliases[name] = realName
+	}
+
 	return nil
 }
 
@@ -111,6 +116,10 @@ func (ws *Workspace) createContext() (*Context, error) {
 }
 
 func (ws *Workspace) componentByName(name string) (*Component, error) {
+	realName, found := ws.Aliases[name]
+	if found {
+		name = realName
+	}
 	comp, found := ws.Components[name]
 	if !found {
 		return nil, errors.New(fmt.Sprintf("service '%s' not found", name))

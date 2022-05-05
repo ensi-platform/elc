@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const Version = "0.1.6-beta.5"
+const Version = "0.1.6-beta.6"
 
 func contains(list []string, item string) bool {
 	for _, value := range list {
