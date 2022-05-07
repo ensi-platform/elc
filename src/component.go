@@ -115,6 +115,15 @@ func (comp *Component) execComposeInteractive(composeCommand []string) (int, err
 	return code, nil
 }
 
+func (comp *Component) execInteractive(command []string) (int, error) {
+	code, err := Pc.ExecInteractive(command, comp.Context.renderMapToEnv())
+	if err != nil {
+		return 0, err
+	}
+
+	return code, nil
+}
+
 func (comp *Component) IsRunning() (bool, error) {
 	out, err := comp.execComposeToString([]string{"ps", "--status=running", "-q"})
 	if err != nil {
@@ -268,6 +277,15 @@ func (comp *Component) Exec(params *SvcExecParams) (int, error) {
 
 	command = append(command, params.Cmd...)
 	code, err := comp.execComposeInteractive(command)
+	if err != nil {
+		return 0, err
+	}
+
+	return code, nil
+}
+
+func (comp *Component) Wrap(params *SvcExecParams) (int, error) {
+	code, err := comp.execInteractive(params.Cmd)
 	if err != nil {
 		return 0, err
 	}

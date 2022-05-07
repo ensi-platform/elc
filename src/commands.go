@@ -483,6 +483,70 @@ func CmdServiceCompose(homeConfigPath string, args []string) (int, error) {
 	return returnCode, nil
 }
 
+func CmdWrap(homeConfigPath string, args []string) (int, error) {
+	if NeedHelp(args, "[OPTIONS] COMMAND [ARGS]", []string{
+		"Execute command on host with env variables for service. For module uses variables of linked service.",
+		"By default uses service/module found with current directory.",
+		"",
+		"Available options:",
+		fmt.Sprintf("  %-20s - %s", Color("--svc=NAME", CYellow), "name of another service or module instead of current"),
+	}) {
+		return 0, nil
+	}
+	fs := flag.NewFlagSet("exec", flag.ContinueOnError)
+	execParams := &SvcExecParams{}
+	addComposeFlags(fs, &execParams.SvcComposeParams)
+	addStartFlags(fs, &execParams.SvcStartParams)
+	addExecFlags(fs, execParams)
+	err := fs.Parse(args)
+	if err != nil {
+		return 0, err
+	}
+
+	execParams.Cmd = fs.Args()
+
+	ws, err := getWorkspaceConfig(homeConfigPath)
+	if err != nil {
+		return 0, err
+	}
+
+	var comp *Component
+
+	if execParams.SvcName == "" {
+		comp, err = ws.componentByPath()
+	} else {
+		comp, err = ws.componentByName(execParams.SvcName)
+	}
+	if err != nil {
+		return 0, err
+	}
+
+	if comp.Config.HostedIn != "" {
+		execParams.SvcName = comp.Config.HostedIn
+	} else {
+		execParams.SvcName = comp.Name
+	}
+
+	if comp.Config.ExecPath != "" {
+		execParams.WorkingDir, err = ws.Context.renderString(comp.Config.ExecPath)
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	hostComp, err := ws.componentByName(execParams.SvcName)
+	if err != nil {
+		return 0, err
+	}
+
+	returnCode, err := hostComp.Wrap(execParams)
+	if err != nil {
+		return 0, err
+	}
+
+	return returnCode, nil
+}
+
 func CmdServiceExec(homeConfigPath string, args []string) (int, error) {
 	if NeedHelp(args, "[OPTIONS] COMMAND [ARGS]", []string{
 		"Execute command in container. For module uses container of linked service.",
