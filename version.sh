@@ -12,4 +12,4 @@ else
   version=$tag
 fi
 
-sed "s/const Version =.*/const Version = \"$version\"/" -i ./src/core.go
+echo "$version"

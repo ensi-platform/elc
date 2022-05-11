@@ -1,15 +1,16 @@
+VERSION := $(shell ./version.sh)
+
 .PHONY: all build gen deps
 
 all: build
 
 build: deps
-	./version.sh
-	go build -o build/elc main.go
+	go build -o build/elc -ldflags="-X 'github.com/madridianfox/elc/src.Version=${VERSION}'" main.go
 
 deps:
 	go get
 
 install:
 	mkdir -p /opt/elc
-	cp ./build/elc /opt/elc/elc-dev
-	ln -s /opt/elc/elc-dev /usr/local/bin/elc
+	sudo cp ./build/elc /opt/elc/elc-v${VERSION}
+	sudo ln -sf /opt/elc/elc-v${VERSION} /usr/local/bin/elc
