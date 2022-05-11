@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 export PROGRAM_NAME="elc"
-export OWNER="MadridianFox"
-export REPO="ensi-local-ctl"
+export OWNER="ensi-platform"
+export REPO="elc"
 export BIN_LOCATION="/opt/elc"
 export LINK_LOCATION="/usr/local/bin"
 
