@@ -151,6 +151,8 @@ func TestServiceStart(t *testing.T) {
 
 const workspaceConfigWithDeps = `
 name: ensi
+aliases:
+  als: dep3
 services:
   dep1:
     path: "${WORKSPACE_PATH}/apps/dep1"
@@ -231,6 +233,14 @@ func TestServiceStartWithDeps(t *testing.T) {
 	_ = CmdServiceStart(fakeHomeConfigPath, []string{"--mode="})
 
 	// by name
+	expectReadHomeConfig(mockPC)
+	expectReadWorkspaceConfig(mockPC, fakeWorkspacePath, workspaceConfigWithDeps, "")
+
+	expectStartService(mockPC, path.Join(fakeWorkspacePath, "apps/dep3/docker-compose.yml"))
+
+	_ = CmdServiceStart(fakeHomeConfigPath, []string{"dep3"})
+
+	// by alias
 	expectReadHomeConfig(mockPC)
 	expectReadWorkspaceConfig(mockPC, fakeWorkspacePath, workspaceConfigWithDeps, "")
 

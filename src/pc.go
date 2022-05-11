@@ -36,7 +36,7 @@ func (r *RealPC) ExecInteractive(command []string, env []string) (int, error) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
-	cmd.Env = env
+	cmd.Env = append(os.Environ(), env...)
 
 	err := cmd.Run()
 
@@ -45,17 +45,12 @@ func (r *RealPC) ExecInteractive(command []string, env []string) (int, error) {
 
 func (r *RealPC) ExecToString(command []string, env []string) (int, string, error) {
 	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-
 	cmd := exec.Command(command[0], command[1:]...)
 	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	cmd.Env = env
+	cmd.Stderr = os.Stderr
+	cmd.Env = append(os.Environ(), env...)
 
 	err := cmd.Run()
-	if err != nil {
-		_, _ = os.Stderr.Write(stderr.Bytes())
-	}
 	return cmd.ProcessState.ExitCode(), stdout.String(), err
 }
 

@@ -75,6 +75,8 @@ func main() {
 		err = elc.CmdUpdate(homeConfigPath, args[2:])
 	case "version":
 		elc.CmdVersion()
+	case "wrap":
+		returnCode, err = elc.CmdWrap(homeConfigPath, args[2:])
 	default:
 		returnCode, err = elc.CmdServiceExec(homeConfigPath, args[1:])
 	}
