@@ -635,9 +635,50 @@ func CmdServiceSetHooks(args []string) error {
 	return nil
 }
 
+type CmdUpdateParams struct {
+	Version string
+}
+
 func CmdUpdate(homeConfigPath string, args []string) error {
-	if NeedHelp(args, "update", []string{
+	if NeedHelp(args, "update [OPTIONS]", []string{
 		"Download new version of ELC, place it to /opt/elc/ and update symlink at /usr/local/bin.",
+		"",
+		"Available options:",
+		fmt.Sprintf("  %-20s - %s", Color("--version=[VERSION]", CYellow), "use specific version of ELC"),
+	}) {
+		return nil
+	}
+
+	fs := flag.NewFlagSet("exec", flag.ContinueOnError)
+	updateParams := &CmdUpdateParams{}
+	fs.StringVar(&updateParams.Version, "version", "", "desired version of elc")
+
+	err := fs.Parse(args)
+	if err != nil {
+		return err
+	}
+
+	env := make([]string, 0)
+	if updateParams.Version != "" {
+		env = append(env, fmt.Sprintf("VERSION=%s", updateParams.Version))
+	}
+
+	hc, err := checkAndLoadHC(homeConfigPath)
+	if err != nil {
+		return err
+	}
+
+	_, err = Pc.ExecInteractive([]string{"bash", "-c", hc.UpdateCommand}, env)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func CmdFixUpdateCommand(homeConfigPath string, args []string) error {
+	if NeedHelp(args, "fix-update-command", []string{
+		"Set actual update command to ~/.elc.yaml",
 	}) {
 		return nil
 	}
@@ -647,7 +688,8 @@ func CmdUpdate(homeConfigPath string, args []string) error {
 		return err
 	}
 
-	_, err = Pc.ExecInteractive([]string{"bash", "-c", hc.UpdateCommand}, []string{})
+	hc.UpdateCommand = defaultUpdateCommand
+	err = SaveHomeConfig(hc)
 	if err != nil {
 		return err
 	}
