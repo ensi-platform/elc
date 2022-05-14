@@ -17,7 +17,7 @@ type HomeConfig struct {
 	Workspaces       []HomeConfigItem `yaml:"workspaces"`
 }
 
-const defaultUpdateCommand = "curl -sSL https://raw.githubusercontent.com/MadridianFox/ensi-local-ctl/master/get.sh | sudo bash"
+const defaultUpdateCommand = "curl -sSL https://raw.githubusercontent.com/ensi-platform/elc/master/get.sh | sudo bash"
 
 func LoadHomeConfig(configPath string) (*HomeConfig, error) {
 	yamlFile, err := Pc.ReadFile(configPath)
