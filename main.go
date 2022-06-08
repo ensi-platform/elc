@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	elc "github.com/madridianfox/elc/src"
 	"path"
+
+	elc "github.com/madridianfox/elc/src"
 )
 
 func main() {
@@ -30,6 +31,12 @@ func main() {
 	}) {
 		elc.Pc.Exit(0)
 	}
+
+	if len(args) < 2 {
+		fmt.Println("At least one argument is needed. Use -h option for help.")
+		elc.Pc.Exit(1)
+	}
+
 	var err error
 	var returnCode int
 
