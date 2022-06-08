@@ -3,11 +3,12 @@ package src
 import (
 	"bytes"
 	"fmt"
-	"github.com/mattn/go-isatty"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/user"
+
+	"github.com/mattn/go-isatty"
 )
 
 type PC interface {
