@@ -3,9 +3,10 @@ package src
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/go-version"
 	"path"
 	"strings"
+
+	"github.com/hashicorp/go-version"
 )
 
 type Workspace struct {
@@ -154,7 +155,7 @@ func (ws *Workspace) componentNameByPath() (string, error) {
 func (ws *Workspace) getComponentNames() []string {
 	result := make([]string, 0)
 	for name, comp := range ws.Components {
-		if !comp.Config.IsTemplate {
+		if !comp.Config.IsTemplate && comp.Config.HostedIn == "" {
 			result = append(result, name)
 		}
 	}

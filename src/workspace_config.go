@@ -32,6 +32,7 @@ func NewWorkspaceConfig() *WorkspaceConfig {
 
 func (wsc *WorkspaceConfig) normalize() {
 	for k, v := range wsc.Templates {
+		v.IsTemplate = true
 		wsc.Components[k] = v
 	}
 	wsc.Templates = nil
