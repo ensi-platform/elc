@@ -61,6 +61,12 @@ func (wsc WorkspaceConfig) merge(wsc2 WorkspaceConfig) WorkspaceConfig {
 		wsc.Aliases[alias] = ccName
 	}
 
+	for name, comp := range wsc.Components {
+		if comp.Alias != "" {
+			wsc.Aliases[comp.Alias] = name
+		}
+	}
+
 	wsc.Variables = append(wsc2.Variables, wsc.Variables...)
 
 	return wsc

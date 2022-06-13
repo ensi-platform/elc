@@ -65,15 +65,15 @@ func (ws *Workspace) init() error {
 		ws.Components[compName] = NewComponent(compName, &compCfg, ws)
 	}
 
+	for name, realName := range ws.Config.Aliases {
+		ws.Aliases[name] = realName
+	}
+
 	for _, comp := range ws.Components {
 		err := comp.init()
 		if err != nil {
 			return err
 		}
-	}
-
-	for name, realName := range ws.Config.Aliases {
-		ws.Aliases[name] = realName
 	}
 
 	return nil

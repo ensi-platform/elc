@@ -47,6 +47,9 @@ func (cc ComponentConfig) merge(cc2 ComponentConfig) ComponentConfig {
 	if cc2.ExecPath != "" {
 		cc.ExecPath = cc2.ExecPath
 	}
+	if cc2.Alias != "" {
+		cc.Alias = cc2.Alias
+	}
 	cc.Variables = append(cc.Variables, cc2.Variables...)
 
 	for depSvc, modes := range cc2.Dependencies {
