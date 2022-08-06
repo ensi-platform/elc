@@ -1,6 +1,9 @@
-package src
+package actions
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/madridianfox/elc/core"
+)
 
 func UpdateBinaryAction(version string) error {
 	env := make([]string, 0)
@@ -8,12 +11,12 @@ func UpdateBinaryAction(version string) error {
 		env = append(env, fmt.Sprintf("VERSION=%s", version))
 	}
 
-	hc, err := checkAndLoadHC()
+	hc, err := core.CheckAndLoadHC()
 	if err != nil {
 		return err
 	}
 
-	_, err = Pc.ExecInteractive([]string{"bash", "-c", hc.UpdateCommand}, env)
+	_, err = core.Pc.ExecInteractive([]string{"bash", "-c", hc.UpdateCommand}, env)
 	if err != nil {
 		return err
 	}
@@ -22,13 +25,13 @@ func UpdateBinaryAction(version string) error {
 }
 
 func FixUpdateBinaryCommandAction() error {
-	hc, err := checkAndLoadHC()
+	hc, err := core.CheckAndLoadHC()
 	if err != nil {
 		return err
 	}
 
-	hc.UpdateCommand = defaultUpdateCommand
-	err = SaveHomeConfig(hc)
+	hc.UpdateCommand = core.DefaultUpdateCommand
+	err = core.SaveHomeConfig(hc)
 	if err != nil {
 		return err
 	}

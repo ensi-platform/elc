@@ -1,4 +1,4 @@
-package src
+package core
 
 import (
 	"github.com/golang/mock/gomock"

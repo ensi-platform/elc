@@ -1,10 +1,10 @@
-package src
+package core
 
 import (
 	"path"
 )
 
-func checkAndLoadHC() (*HomeConfig, error) {
+func CheckAndLoadHC() (*HomeConfig, error) {
 	homeDir, err := Pc.HomeDir()
 	if err != nil {
 		return nil, err
@@ -22,8 +22,8 @@ func checkAndLoadHC() (*HomeConfig, error) {
 	return hc, nil
 }
 
-func getWorkspaceConfig() (*Workspace, error) {
-	hc, err := checkAndLoadHC()
+func GetWorkspaceConfig() (*Workspace, error) {
+	hc, err := CheckAndLoadHC()
 	if err != nil {
 		return nil, err
 	}

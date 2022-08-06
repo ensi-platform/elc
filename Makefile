@@ -5,7 +5,7 @@ VERSION := $(shell ./version.sh)
 all: build
 
 build: deps
-	go build -o build/elc -ldflags="-X 'github.com/madridianfox/elc/src.Version=${VERSION}'" main.go
+	go build -o build/elc -ldflags="-X 'github.com/madridianfox/elc/core.Version=${VERSION}'" main.go
 
 deps:
 	go get

@@ -1,4 +1,4 @@
-package src
+package core
 
 import "fmt"
 
@@ -33,7 +33,7 @@ func (ctx *Context) add(name string, value string) Context {
 	return append(tmp, []string{name, value})
 }
 
-func (ctx *Context) renderString(str string) (string, error) {
+func (ctx *Context) RenderString(str string) (string, error) {
 	return substVars(str, ctx)
 }
 

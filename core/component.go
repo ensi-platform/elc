@@ -1,9 +1,10 @@
-package src
+package core
 
 import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 type Component struct {
@@ -29,7 +30,7 @@ func (comp *Component) init() error {
 
 	ctx = ctx.add("APP_NAME", comp.Name)
 	ctx = ctx.add("COMPOSE_PROJECT_NAME", fmt.Sprintf("%s-%s", comp.Workspace.Config.Name, comp.Name))
-	svcPath, err := ctx.renderString(comp.Config.Path)
+	svcPath, err := ctx.RenderString(comp.Config.Path)
 	if err != nil {
 		return err
 	}
@@ -42,7 +43,7 @@ func (comp *Component) init() error {
 		}
 		comp.Template = &tpl
 
-		tplPath, err := ctx.renderString(tpl.Path)
+		tplPath, err := ctx.RenderString(tpl.Path)
 		if err != nil {
 			return err
 		}
@@ -50,13 +51,13 @@ func (comp *Component) init() error {
 		if tpl.ComposeFile == "" {
 			tpl.ComposeFile = "${TPL_PATH}/docker-compose.yml"
 		}
-		composeFile, err := ctx.renderString(tpl.ComposeFile)
+		composeFile, err := ctx.RenderString(tpl.ComposeFile)
 		if err != nil {
 			return err
 		}
 		ctx = ctx.add("COMPOSE_FILE", composeFile)
 		for _, pair := range tpl.Variables {
-			value, err := ctx.renderString(pair.Value.(string))
+			value, err := ctx.RenderString(pair.Value.(string))
 			if err != nil {
 				return err
 			}
@@ -65,7 +66,7 @@ func (comp *Component) init() error {
 	}
 
 	if comp.Config.ComposeFile != "" {
-		composeFile, err := ctx.renderString(comp.Config.ComposeFile)
+		composeFile, err := ctx.RenderString(comp.Config.ComposeFile)
 		if err != nil {
 			return err
 		}
@@ -73,7 +74,7 @@ func (comp *Component) init() error {
 	}
 	composeFile, found := ctx.find("COMPOSE_FILE")
 	if !found || composeFile == "" {
-		composeFile, err := ctx.renderString("${SVC_PATH}/docker-compose.yml")
+		composeFile, err := ctx.RenderString("${SVC_PATH}/docker-compose.yml")
 		if err != nil {
 			return err
 		}
@@ -81,7 +82,7 @@ func (comp *Component) init() error {
 	}
 
 	for _, pair := range comp.Config.Variables {
-		value, err := ctx.renderString(pair.Value.(string))
+		value, err := ctx.RenderString(pair.Value.(string))
 		if err != nil {
 			return err
 		}
@@ -93,9 +94,12 @@ func (comp *Component) init() error {
 	return nil
 }
 
-func (comp *Component) execComposeToString(composeCommand []string) (string, error) {
+func (comp *Component) execComposeToString(composeCommand []string, options *GlobalOptions) (string, error) {
 	composeFile, _ := comp.Context.find("COMPOSE_FILE")
 	command := append([]string{"docker", "compose", "-f", composeFile}, composeCommand...)
+	if options.Debug {
+		_, _ = Pc.Printf(">> %s\n", strings.Join(command, " "))
+	}
 	_, out, err := Pc.ExecToString(command, comp.Context.renderMapToEnv())
 	if err != nil {
 		return "", err
@@ -104,9 +108,12 @@ func (comp *Component) execComposeToString(composeCommand []string) (string, err
 	return out, nil
 }
 
-func (comp *Component) execComposeInteractive(composeCommand []string) (int, error) {
+func (comp *Component) execComposeInteractive(composeCommand []string, options *GlobalOptions) (int, error) {
 	composeFile, _ := comp.Context.find("COMPOSE_FILE")
 	command := append([]string{"docker", "compose", "-f", composeFile}, composeCommand...)
+	if options.Debug {
+		_, _ = Pc.Printf(">> %s\n", strings.Join(command, " "))
+	}
 	code, err := Pc.ExecInteractive(command, comp.Context.renderMapToEnv())
 	if err != nil {
 		return 0, err
@@ -124,8 +131,8 @@ func (comp *Component) execInteractive(command []string) (int, error) {
 	return code, nil
 }
 
-func (comp *Component) IsRunning() (bool, error) {
-	out, err := comp.execComposeToString([]string{"ps", "--status=running", "-q"})
+func (comp *Component) IsRunning(options *GlobalOptions) (bool, error) {
+	out, err := comp.execComposeToString([]string{"ps", "--status=running", "-q"}, options)
 	if err != nil {
 		return false, err
 	}
@@ -133,30 +140,25 @@ func (comp *Component) IsRunning() (bool, error) {
 	return out != "", nil
 }
 
-type SvcStartParams struct {
-	Force bool
-	Mode  string
-}
-
-func (comp *Component) Start(params *SvcStartParams) error {
+func (comp *Component) Start(options *GlobalOptions) error {
 	if comp.JustStarted {
 		return nil
 	}
 
-	running, err := comp.IsRunning()
+	running, err := comp.IsRunning(options)
 	if err != nil {
 		return err
 	}
 
-	if !running || params.Force {
-		err := comp.startDependencies(params)
+	if !running || options.Force {
+		err := comp.startDependencies(options)
 		if err != nil {
 			return err
 		}
 	}
 
 	if !running {
-		_, err = comp.execComposeInteractive([]string{"up", "-d"})
+		_, err = comp.execComposeInteractive([]string{"up", "-d"}, options)
 		if err != nil {
 			return err
 		}
@@ -165,7 +167,7 @@ func (comp *Component) Start(params *SvcStartParams) error {
 	return nil
 }
 
-func (comp *Component) startDependencies(params *SvcStartParams) error {
+func (comp *Component) startDependencies(params *GlobalOptions) error {
 	for _, depName := range comp.Config.GetDeps(params.Mode) {
 		depComp, found := comp.Workspace.Components[depName]
 		if !found {
@@ -180,13 +182,13 @@ func (comp *Component) startDependencies(params *SvcStartParams) error {
 	return nil
 }
 
-func (comp *Component) Stop() error {
-	running, err := comp.IsRunning()
+func (comp *Component) Stop(options *GlobalOptions) error {
+	running, err := comp.IsRunning(options)
 	if err != nil {
 		return err
 	}
 	if running {
-		_, err = comp.execComposeInteractive([]string{"stop"})
+		_, err = comp.execComposeInteractive([]string{"stop"}, options)
 		if err != nil {
 			return err
 		}
@@ -195,13 +197,13 @@ func (comp *Component) Stop() error {
 	return nil
 }
 
-func (comp *Component) Destroy() error {
-	running, err := comp.IsRunning()
+func (comp *Component) Destroy(options *GlobalOptions) error {
+	running, err := comp.IsRunning(options)
 	if err != nil {
 		return err
 	}
 	if running {
-		_, err := comp.execComposeInteractive([]string{"down"})
+		_, err := comp.execComposeInteractive([]string{"down"}, options)
 		if err != nil {
 			return err
 		}
@@ -210,24 +212,20 @@ func (comp *Component) Destroy() error {
 	return nil
 }
 
-type SvcRestartParams struct {
-	Hard bool
-}
-
-func (comp *Component) Restart(hard bool) error {
+func (comp *Component) Restart(hard bool, options *GlobalOptions) error {
 	var err error
 	if hard {
-		err = comp.Destroy()
+		err = comp.Destroy(options)
 		if err != nil {
 			return err
 		}
 	} else {
-		err = comp.Stop()
+		err = comp.Stop(options)
 		if err != nil {
 			return err
 		}
 	}
-	err = comp.Start(&SvcStartParams{})
+	err = comp.Start(&GlobalOptions{})
 	if err != nil {
 		return err
 	}
@@ -235,13 +233,8 @@ func (comp *Component) Restart(hard bool) error {
 	return nil
 }
 
-type SvcComposeParams struct {
-	Cmd     []string
-	SvcName string
-}
-
-func (comp *Component) Compose(params *SvcComposeParams) (int, error) {
-	code, err := comp.execComposeInteractive(params.Cmd)
+func (comp *Component) Compose(params *GlobalOptions) (int, error) {
+	code, err := comp.execComposeInteractive(params.Cmd, params)
 	if err != nil {
 		return 0, err
 	}
@@ -249,25 +242,18 @@ func (comp *Component) Compose(params *SvcComposeParams) (int, error) {
 	return code, nil
 }
 
-type SvcExecParams struct {
-	SvcComposeParams
-	SvcStartParams
-	WorkingDir string
-	UID        int
-}
-
-func (comp *Component) Exec(params *SvcExecParams) (int, error) {
-	err := comp.Start(&params.SvcStartParams)
+func (comp *Component) Exec(options *GlobalOptions) (int, error) {
+	err := comp.Start(options)
 	if err != nil {
 		return 0, err
 	}
 
 	command := []string{"exec"}
-	if params.WorkingDir != "" {
-		command = append(command, "-w", params.WorkingDir)
+	if options.WorkingDir != "" {
+		command = append(command, "-w", options.WorkingDir)
 	}
-	if params.UID > -1 {
-		command = append(command, "-u", strconv.Itoa(params.UID))
+	if options.UID > -1 {
+		command = append(command, "-u", strconv.Itoa(options.UID))
 	}
 
 	if !Pc.IsTerminal() {
@@ -275,8 +261,8 @@ func (comp *Component) Exec(params *SvcExecParams) (int, error) {
 	}
 	command = append(command, "app")
 
-	command = append(command, params.Cmd...)
-	code, err := comp.execComposeInteractive(command)
+	command = append(command, options.Cmd...)
+	code, err := comp.execComposeInteractive(command, options)
 	if err != nil {
 		return 0, err
 	}

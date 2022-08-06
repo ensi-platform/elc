@@ -1,4 +1,4 @@
-package src
+package core
 
 import (
 	"errors"
@@ -8,6 +8,17 @@ import (
 )
 
 var Version string
+
+type GlobalOptions struct {
+	WorkspaceName string
+	ComponentName string
+	Debug         bool
+	Cmd           []string
+	Force         bool
+	Mode          string
+	WorkingDir    string
+	UID           int
+}
 
 func contains(list []string, item string) bool {
 	for _, value := range list {
@@ -75,7 +86,7 @@ func substVars(expr string, ctx *Context) (string, error) {
 	return expr, nil
 }
 
-func generateHookScript(scripts []string, elcBinary string) string {
+func GenerateHookScript(scripts []string, elcBinary string) string {
 	result := make([]string, 0)
 	result = append(result, "#!/bin/bash")
 	result = append(result, "set -e")

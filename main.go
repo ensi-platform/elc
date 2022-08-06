@@ -1,12 +1,12 @@
 package main
 
 import (
-	elc "github.com/madridianfox/elc/src"
+	"github.com/madridianfox/elc/cmd"
 	"os"
 )
 
 func main() {
-	command := elc.InitCobra()
+	command := cmd.InitCobra()
 	err := command.Execute()
 	if err != nil {
 		os.Exit(1)

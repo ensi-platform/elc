@@ -1,4 +1,4 @@
-package src
+package core
 
 import (
 	"errors"
@@ -116,7 +116,7 @@ func (ws *Workspace) createContext() (*Context, error) {
 	return &ctx, nil
 }
 
-func (ws *Workspace) componentByName(name string) (*Component, error) {
+func (ws *Workspace) ComponentByName(name string) (*Component, error) {
 	realName, found := ws.Aliases[name]
 	if found {
 		name = realName
@@ -128,7 +128,7 @@ func (ws *Workspace) componentByName(name string) (*Component, error) {
 	return comp, nil
 }
 
-func (ws *Workspace) componentByPath() (*Component, error) {
+func (ws *Workspace) ComponentByPath() (*Component, error) {
 	for _, comp := range ws.Components {
 		compPath, found := comp.Context.find("SVC_PATH")
 		if found {
@@ -140,7 +140,7 @@ func (ws *Workspace) componentByPath() (*Component, error) {
 	return nil, errors.New(fmt.Sprintf("you are not in component folder"))
 }
 
-func (ws *Workspace) componentNameByPath() (string, error) {
+func (ws *Workspace) ComponentNameByPath() (string, error) {
 	for name, comp := range ws.Components {
 		compPath, found := comp.Context.find("SVC_PATH")
 		if found {
@@ -152,7 +152,7 @@ func (ws *Workspace) componentNameByPath() (string, error) {
 	return "", errors.New(fmt.Sprintf("you are not in component folder"))
 }
 
-func (ws *Workspace) getComponentNames() []string {
+func (ws *Workspace) GetComponentNames() []string {
 	result := make([]string, 0)
 	for name, comp := range ws.Components {
 		if !comp.Config.IsTemplate && comp.Config.HostedIn == "" {
