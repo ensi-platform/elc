@@ -214,9 +214,9 @@ type SvcRestartParams struct {
 	Hard bool
 }
 
-func (comp *Component) Restart(params *SvcRestartParams) error {
+func (comp *Component) Restart(hard bool) error {
 	var err error
-	if params.Hard {
+	if hard {
 		err = comp.Destroy()
 		if err != nil {
 			return err
@@ -284,8 +284,8 @@ func (comp *Component) Exec(params *SvcExecParams) (int, error) {
 	return code, nil
 }
 
-func (comp *Component) Wrap(params *SvcExecParams) (int, error) {
-	code, err := comp.execInteractive(params.Cmd)
+func (comp *Component) Wrap(command []string) (int, error) {
+	code, err := comp.execInteractive(command)
 	if err != nil {
 		return 0, err
 	}
