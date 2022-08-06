@@ -3,7 +3,6 @@ package src
 import (
 	"errors"
 	"fmt"
-	"path"
 	"regexp"
 	"strings"
 )
@@ -74,33 +73,6 @@ func substVars(expr string, ctx *Context) (string, error) {
 	}
 
 	return expr, nil
-}
-
-func SetGitHooks(scriptsFolder string, elcBinary string) error {
-	folders, err := Pc.ReadDir(scriptsFolder)
-	if err != nil {
-		return err
-	}
-	for _, folder := range folders {
-		if !folder.IsDir() {
-			continue
-		}
-		files, err := Pc.ReadDir(path.Join(scriptsFolder, folder.Name()))
-		if err != nil {
-			return err
-		}
-		hookScripts := make([]string, 0)
-		for _, file := range files {
-			hookScripts = append(hookScripts, path.Join(scriptsFolder, folder.Name(), file.Name()))
-		}
-		script := generateHookScript(hookScripts, elcBinary)
-		err = Pc.WriteFile(fmt.Sprintf(".git/hooks/%s", folder.Name()), []byte(script), 0755)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func generateHookScript(scripts []string, elcBinary string) string {
