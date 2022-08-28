@@ -18,6 +18,8 @@ type GlobalOptions struct {
 	Mode          string
 	WorkingDir    string
 	UID           int
+	Tag           string
+	DryRun        bool
 }
 
 func contains(list []string, item string) bool {

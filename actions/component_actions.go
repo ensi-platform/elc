@@ -1,10 +1,34 @@
 package actions
 
 import (
+	"errors"
 	"fmt"
 	"github.com/madridianfox/elc/core"
 	"path"
 )
+
+func resolveCompNames(ws *core.Workspace, options *core.GlobalOptions, namesFromArgs []string) ([]string, error) {
+	var compNames []string
+
+	if options.Tag != "" {
+		compNames = ws.FindComponentNamesByTag(options.Tag)
+		if len(compNames) == 0 {
+			return nil, errors.New(fmt.Sprintf("components with tag %s not found", options.Tag))
+		}
+	} else if options.ComponentName != "" {
+		compNames = []string{options.ComponentName}
+	} else if len(namesFromArgs) > 0 {
+		compNames = namesFromArgs
+	} else {
+		currentCompName, err := ws.ComponentNameByPath()
+		if err != nil {
+			return nil, err
+		}
+		compNames = []string{currentCompName}
+	}
+
+	return compNames, nil
+}
 
 func StartServiceAction(options *core.GlobalOptions, svcNames []string) error {
 	ws, err := core.GetWorkspaceConfig()
@@ -12,24 +36,13 @@ func StartServiceAction(options *core.GlobalOptions, svcNames []string) error {
 		return err
 	}
 
-	if options.ComponentName != "" {
-		svcNames = append(svcNames, options.ComponentName)
+	compNames, err := resolveCompNames(ws, options, svcNames)
+	if err != nil {
+		return err
 	}
 
-	if len(svcNames) > 0 {
-		for _, svcName := range svcNames {
-			comp, err := ws.ComponentByName(svcName)
-			if err != nil {
-				return err
-			}
-
-			err = comp.Start(options)
-			if err != nil {
-				return err
-			}
-		}
-	} else {
-		comp, err := ws.ComponentByPath()
+	for _, compName := range compNames {
+		comp, err := ws.ComponentByName(compName)
 		if err != nil {
 			return err
 		}
@@ -49,35 +62,22 @@ func StopServiceAction(stopAll bool, svcNames []string, destroy bool, options *c
 		return err
 	}
 
-	if options.ComponentName != "" {
-		svcNames = append(svcNames, options.ComponentName)
-	}
+	var compNames []string
 
 	if stopAll {
-		svcNames = ws.GetComponentNames()
-	}
-
-	if len(svcNames) > 0 {
-		for _, svcName := range svcNames {
-			comp, err := ws.ComponentByName(svcName)
-			if err != nil {
-				return err
-			}
-			if destroy {
-				err = comp.Destroy(options)
-			} else {
-				err = comp.Stop(options)
-			}
-			if err != nil {
-				return err
-			}
-		}
+		compNames = ws.GetComponentNames()
 	} else {
-		comp, err := ws.ComponentByPath()
+		compNames, err = resolveCompNames(ws, options, svcNames)
 		if err != nil {
 			return err
 		}
+	}
 
+	for _, compName := range compNames {
+		comp, err := ws.ComponentByName(compName)
+		if err != nil {
+			return err
+		}
 		if destroy {
 			err = comp.Destroy(options)
 		} else {
@@ -97,20 +97,13 @@ func RestartServiceAction(hardRestart bool, svcNames []string, options *core.Glo
 		return err
 	}
 
-	if len(svcNames) > 0 {
-		for _, svcName := range svcNames {
-			comp, err := ws.ComponentByName(svcName)
-			if err != nil {
-				return err
-			}
+	compNames, err := resolveCompNames(ws, options, svcNames)
+	if err != nil {
+		return err
+	}
 
-			err = comp.Restart(hardRestart, options)
-			if err != nil {
-				return err
-			}
-		}
-	} else {
-		comp, err := ws.ComponentByPath()
+	for _, compName := range compNames {
+		comp, err := ws.ComponentByName(compName)
 		if err != nil {
 			return err
 		}
@@ -124,24 +117,24 @@ func RestartServiceAction(hardRestart bool, svcNames []string, options *core.Glo
 	return nil
 }
 
-func PrintVarsAction(svcNames []string) error {
+func PrintVarsAction(options *core.GlobalOptions, svcNames []string) error {
 	ws, err := core.GetWorkspaceConfig()
 	if err != nil {
 		return err
 	}
 
-	var comp *core.Component
+	compNames, err := resolveCompNames(ws, options, svcNames)
+	if err != nil {
+		return err
+	}
 
-	if len(svcNames) > 0 {
-		comp, err = ws.ComponentByName(svcNames[0])
-		if err != nil {
-			return err
-		}
-	} else {
-		comp, err = ws.ComponentByPath()
-		if err != nil {
-			return err
-		}
+	if len(compNames) > 1 {
+		return errors.New("too many components for show")
+	}
+
+	comp, err := ws.ComponentByName(compNames[0])
+	if err != nil {
+		return err
 	}
 
 	err = comp.DumpVars()
@@ -152,27 +145,29 @@ func PrintVarsAction(svcNames []string) error {
 	return nil
 }
 
-func ComposeCommandAction(args []string, composeParams core.GlobalOptions) error {
+func ComposeCommandAction(options *core.GlobalOptions, args []string) error {
 	ws, err := core.GetWorkspaceConfig()
 	if err != nil {
 		return err
 	}
 
-	composeParams.Cmd = args
-
-	if composeParams.ComponentName == "" {
-		composeParams.ComponentName, err = ws.ComponentNameByPath()
-		if err != nil {
-			return err
-		}
-	}
-
-	comp, err := ws.ComponentByName(composeParams.ComponentName)
+	compNames, err := resolveCompNames(ws, options, []string{})
 	if err != nil {
 		return err
 	}
 
-	_, err = comp.Compose(&composeParams)
+	if len(compNames) > 1 {
+		return errors.New("too many components")
+	}
+
+	comp, err := ws.ComponentByName(compNames[0])
+	if err != nil {
+		return err
+	}
+
+	options.Cmd = args
+
+	_, err = comp.Compose(options)
 	if err != nil {
 		return err
 	}
@@ -180,37 +175,40 @@ func ComposeCommandAction(args []string, composeParams core.GlobalOptions) error
 	return nil
 }
 
-func WrapCommandAction(globalOptions core.GlobalOptions, command []string) error {
+func WrapCommandAction(options *core.GlobalOptions, command []string) error {
 	ws, err := core.GetWorkspaceConfig()
 	if err != nil {
 		return err
 	}
 
-	var comp *core.Component
-
-	svcName := globalOptions.ComponentName
-
-	if svcName == "" {
-		comp, err = ws.ComponentByPath()
-	} else {
-		comp, err = ws.ComponentByName(svcName)
-	}
+	compNames, err := resolveCompNames(ws, options, []string{})
 	if err != nil {
 		return err
 	}
+
+	if len(compNames) > 1 {
+		return errors.New("too many components")
+	}
+
+	comp, err := ws.ComponentByName(compNames[0])
+	if err != nil {
+		return err
+	}
+
+	var hostName string
 
 	if comp.Config.HostedIn != "" {
-		svcName = comp.Config.HostedIn
+		hostName = comp.Config.HostedIn
 	} else {
-		svcName = comp.Name
+		hostName = comp.Name
 	}
 
-	hostComp, err := ws.ComponentByName(svcName)
+	hostComp, err := ws.ComponentByName(hostName)
 	if err != nil {
 		return err
 	}
 
-	_, err = hostComp.Wrap(command)
+	_, err = hostComp.Wrap(command, options)
 	if err != nil {
 		return err
 	}
@@ -218,27 +216,37 @@ func WrapCommandAction(globalOptions core.GlobalOptions, command []string) error
 	return nil
 }
 
-func ExecAction(options core.GlobalOptions) error {
+func ExecAction(options *core.GlobalOptions) error {
 	ws, err := core.GetWorkspaceConfig()
 	if err != nil {
 		return err
 	}
 
-	var comp *core.Component
-
-	if options.ComponentName == "" {
-		comp, err = ws.ComponentByPath()
-	} else {
-		comp, err = ws.ComponentByName(options.ComponentName)
-	}
+	compNames, err := resolveCompNames(ws, options, []string{})
 	if err != nil {
 		return err
 	}
 
+	if len(compNames) > 1 {
+		return errors.New("too many components")
+	}
+
+	comp, err := ws.ComponentByName(compNames[0])
+	if err != nil {
+		return err
+	}
+
+	var hostName string
+
 	if comp.Config.HostedIn != "" {
-		options.ComponentName = comp.Config.HostedIn
+		hostName = comp.Config.HostedIn
 	} else {
-		options.ComponentName = comp.Name
+		hostName = comp.Name
+	}
+
+	hostComp, err := ws.ComponentByName(hostName)
+	if err != nil {
+		return err
 	}
 
 	if comp.Config.ExecPath != "" {
@@ -248,12 +256,7 @@ func ExecAction(options core.GlobalOptions) error {
 		}
 	}
 
-	hostComp, err := ws.ComponentByName(options.ComponentName)
-	if err != nil {
-		return err
-	}
-
-	_, err = hostComp.Exec(&options)
+	_, err = hostComp.Exec(options)
 	if err != nil {
 		return err
 	}
@@ -280,6 +283,32 @@ func SetGitHooksAction(scriptsFolder string, elcBinary string) error {
 		}
 		script := core.GenerateHookScript(hookScripts, elcBinary)
 		err = core.Pc.WriteFile(fmt.Sprintf(".git/hooks/%s", folder.Name()), []byte(script), 0755)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func CloneComponentAction(options *core.GlobalOptions, svcNames []string) error {
+	ws, err := core.GetWorkspaceConfig()
+	if err != nil {
+		return err
+	}
+
+	compNames, err := resolveCompNames(ws, options, svcNames)
+	if err != nil {
+		return err
+	}
+
+	for _, compName := range compNames {
+		comp, err := ws.ComponentByName(compName)
+		if err != nil {
+			return err
+		}
+
+		err = comp.Clone(options)
 		if err != nil {
 			return err
 		}

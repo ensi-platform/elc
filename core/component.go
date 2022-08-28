@@ -97,38 +97,56 @@ func (comp *Component) init() error {
 func (comp *Component) execComposeToString(composeCommand []string, options *GlobalOptions) (string, error) {
 	composeFile, _ := comp.Context.find("COMPOSE_FILE")
 	command := append([]string{"docker", "compose", "-f", composeFile}, composeCommand...)
+
 	if options.Debug {
 		_, _ = Pc.Printf(">> %s\n", strings.Join(command, " "))
 	}
-	_, out, err := Pc.ExecToString(command, comp.Context.renderMapToEnv())
-	if err != nil {
-		return "", err
+
+	if !options.DryRun {
+		_, out, err := Pc.ExecToString(command, comp.Context.renderMapToEnv())
+		if err != nil {
+			return "", err
+		}
+		return out, nil
 	}
 
-	return out, nil
+	return "", nil
 }
 
 func (comp *Component) execComposeInteractive(composeCommand []string, options *GlobalOptions) (int, error) {
 	composeFile, _ := comp.Context.find("COMPOSE_FILE")
 	command := append([]string{"docker", "compose", "-f", composeFile}, composeCommand...)
+
 	if options.Debug {
 		_, _ = Pc.Printf(">> %s\n", strings.Join(command, " "))
 	}
-	code, err := Pc.ExecInteractive(command, comp.Context.renderMapToEnv())
-	if err != nil {
-		return 0, err
+
+	if !options.DryRun {
+		code, err := Pc.ExecInteractive(command, comp.Context.renderMapToEnv())
+		if err != nil {
+			return 0, err
+		}
+
+		return code, nil
 	}
 
-	return code, nil
+	return 0, nil
 }
 
-func (comp *Component) execInteractive(command []string) (int, error) {
-	code, err := Pc.ExecInteractive(command, comp.Context.renderMapToEnv())
-	if err != nil {
-		return 0, err
+func (comp *Component) execInteractive(command []string, options *GlobalOptions) (int, error) {
+	if options.Debug {
+		_, _ = Pc.Printf(">> %s\n", strings.Join(command, " "))
 	}
 
-	return code, nil
+	if !options.DryRun {
+		code, err := Pc.ExecInteractive(command, comp.Context.renderMapToEnv())
+		if err != nil {
+			return 0, err
+		}
+		return code, nil
+	}
+
+	return 0, nil
 }
 
 func (comp *Component) IsRunning(options *GlobalOptions) (bool, error) {
@@ -282,8 +300,8 @@ func (comp *Component) Exec(options *GlobalOptions) (int, error) {
 	return code, nil
 }
 
-func (comp *Component) Wrap(command []string) (int, error) {
-	code, err := comp.execInteractive(command)
+func (comp *Component) Wrap(command []string, options *GlobalOptions) (int, error) {
+	code, err := comp.execInteractive(command, options)
 	if err != nil {
 		return 0, err
 	}
@@ -297,4 +315,17 @@ func (comp *Component) DumpVars() error {
 	}
 
 	return nil
+}
+
+func (comp *Component) Clone(options *GlobalOptions) error {
+	if comp.Config.Repository == "" {
+		return errors.New(fmt.Sprintf("repository of component %s is not defined. Check workspace.yaml", comp.Name))
+	}
+	svcPath, found := comp.Context.find("SVC_PATH")
+	if !found {
+		return errors.New("path of component is not defined.Check workspace.yaml")
+	}
+	_, err := comp.execInteractive([]string{"git", "clone", comp.Config.Repository, svcPath}, options)
+
+	return err
 }

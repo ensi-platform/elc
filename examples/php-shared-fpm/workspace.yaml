@@ -36,6 +36,7 @@ modules:
     path: ${APP1_PATH}
     hosted_in: fpm
     exec_path: ${APP1_MOUNT_PATH}
+    repository: git@gitlab.com:user/project.git
   app2:
     path: ${APP2_PATH}
     hosted_in: fpm

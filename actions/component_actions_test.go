@@ -305,7 +305,7 @@ func TestServiceCompose(t *testing.T) {
 		ExecInteractive([]string{"docker", "compose", "-f", path.Join(fakeWorkspacePath, "apps/test/docker-compose.yml"), "some", "command"}, gomock.Any()).
 		Return(0, nil)
 
-	_ = ComposeCommandAction([]string{"some", "command"}, core.GlobalOptions{})
+	_ = ComposeCommandAction(&core.GlobalOptions{}, []string{"some", "command"})
 }
 
 func TestServiceComposeByName(t *testing.T) {
@@ -317,9 +317,9 @@ func TestServiceComposeByName(t *testing.T) {
 		ExecInteractive([]string{"docker", "compose", "-f", path.Join(fakeWorkspacePath, "apps/dep1/docker-compose.yml"), "some", "command"}, gomock.Any()).
 		Return(0, nil)
 
-	_ = ComposeCommandAction([]string{"some", "command"}, core.GlobalOptions{
+	_ = ComposeCommandAction(&core.GlobalOptions{
 		ComponentName: "dep1",
-	})
+	}, []string{"some", "command"})
 }
 
 func TestServiceExec(t *testing.T) {
@@ -335,7 +335,7 @@ func TestServiceExec(t *testing.T) {
 		ExecInteractive([]string{"docker", "compose", "-f", path.Join(fakeWorkspacePath, "apps/test/docker-compose.yml"), "exec", "-u", "1000:1000", "app", "some", "command"}, gomock.Any()).
 		Return(0, nil)
 
-	_ = ExecAction(core.GlobalOptions{
+	_ = ExecAction(&core.GlobalOptions{
 		Cmd: []string{"some", "command"},
 		UID: -1,
 	})
@@ -354,7 +354,7 @@ func TestServiceExecWithoutTty(t *testing.T) {
 		ExecInteractive([]string{"docker", "compose", "-f", path.Join(fakeWorkspacePath, "apps/test/docker-compose.yml"), "exec", "-u", "1000:1000", "-T", "app", "some", "command"}, gomock.Any()).
 		Return(0, nil)
 
-	_ = ExecAction(core.GlobalOptions{
+	_ = ExecAction(&core.GlobalOptions{
 		Cmd: []string{"some", "command"},
 		UID: -1,
 	})
@@ -373,7 +373,7 @@ func TestServiceExecWithUid(t *testing.T) {
 		ExecInteractive([]string{"docker", "compose", "-f", path.Join(fakeWorkspacePath, "apps/test/docker-compose.yml"), "exec", "-u", "1001", "app", "some", "command"}, gomock.Any()).
 		Return(0, nil)
 
-	_ = ExecAction(core.GlobalOptions{
+	_ = ExecAction(&core.GlobalOptions{
 		Cmd: []string{"some", "command"},
 		UID: 1001,
 	})
@@ -411,8 +411,6 @@ func TestServiceVars(t *testing.T) {
 
 	mockPc.EXPECT().Println("WORKSPACE_PATH=/tmp/workspaces/project1")
 	mockPc.EXPECT().Println("WORKSPACE_NAME=ensi")
-	mockPc.EXPECT().Println("USER_ID=1000")
-	mockPc.EXPECT().Println("GROUP_ID=1000")
 
 	mockPc.EXPECT().Println("V_GL=vglobal")
 	mockPc.EXPECT().Println("V_GL_SIMPLE_VAR=vglobal-a")
@@ -426,7 +424,7 @@ func TestServiceVars(t *testing.T) {
 
 	mockPc.EXPECT().Println("V_IN_SVC=vinsvc")
 
-	_ = PrintVarsAction([]string{})
+	_ = PrintVarsAction(&core.GlobalOptions{}, []string{})
 }
 
 func TestServiceVarsWithTpl(t *testing.T) {
@@ -452,5 +450,5 @@ func TestServiceVarsWithTpl(t *testing.T) {
 
 	mockPc.EXPECT().Println("V_IN_SVC=vinsvc")
 
-	_ = PrintVarsAction([]string{"test1"})
+	_ = PrintVarsAction(&core.GlobalOptions{}, []string{"test1"})
 }

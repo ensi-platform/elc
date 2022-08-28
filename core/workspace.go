@@ -162,3 +162,18 @@ func (ws *Workspace) GetComponentNames() []string {
 
 	return result
 }
+
+func (ws *Workspace) FindComponentNamesByTag(tag string) []string {
+	result := make([]string, 0)
+	for name, comp := range ws.Components {
+		if !comp.Config.IsTemplate {
+			for _, compTag := range comp.Config.Tags {
+				if compTag == tag {
+					result = append(result, name)
+				}
+			}
+		}
+	}
+
+	return result
+}

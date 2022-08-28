@@ -21,11 +21,11 @@ func parseExecFlags(cmd *cobra.Command) {
 func InitCobra() *cobra.Command {
 	globalOptions = core.GlobalOptions{}
 	var rootCmd = &cobra.Command{
-		Use:           "elc [command]",
-		Args:          cobra.MinimumNArgs(0),
-		SilenceUsage:  true,
-		SilenceErrors: true,
-		Version:       core.Version,
+		Use:          "elc [command]",
+		Args:         cobra.MinimumNArgs(0),
+		SilenceUsage: true,
+		//SilenceErrors: true,
+		Version: core.Version,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			core.Pc = &core.RealPC{}
 		},
@@ -34,7 +34,7 @@ func InitCobra() *cobra.Command {
 				return cmd.Help()
 			} else {
 				globalOptions.Cmd = args
-				return actions.ExecAction(globalOptions)
+				return actions.ExecAction(&globalOptions)
 			}
 		},
 	}
@@ -45,6 +45,8 @@ func InitCobra() *cobra.Command {
 	rootCmd.PersistentFlags().StringVarP(&globalOptions.WorkspaceName, "workspace", "w", "", "name of workspace")
 	rootCmd.PersistentFlags().StringVar(&globalOptions.ComponentName, "svc", "", "name of current component (deprecated, alias for component)")
 	rootCmd.PersistentFlags().BoolVar(&globalOptions.Debug, "debug", false, "print debug messages")
+	rootCmd.PersistentFlags().BoolVar(&globalOptions.DryRun, "dry-run", false, "do not execute real command, only debug")
+	rootCmd.PersistentFlags().StringVar(&globalOptions.Tag, "tag", "", "select all components with tag")
 
 	parseStartFlags(rootCmd)
 	parseExecFlags(rootCmd)
@@ -61,6 +63,7 @@ func InitCobra() *cobra.Command {
 	NewServiceSetHooksCommand(rootCmd)
 	NewUpdateCommand(rootCmd)
 	NewFixUpdateCommand(rootCmd)
+	NewServiceCloneCommand(rootCmd)
 
 	return rootCmd
 }
@@ -215,7 +218,7 @@ func NewServiceVarsCommand(parentCommand *cobra.Command) {
 		Long:  "Print all variables computed for service.\nBy default uses service found with current directory, but you can pass name of another service instead.",
 		Args:  cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return actions.PrintVarsAction(args)
+			return actions.PrintVarsAction(&globalOptions, args)
 		},
 	}
 	parentCommand.AddCommand(command)
@@ -231,7 +234,7 @@ func NewServiceComposeCommand(parentCommand *cobra.Command) {
 			if len(args) == 0 {
 				return cmd.Help()
 			} else {
-				return actions.ComposeCommandAction(args, globalOptions)
+				return actions.ComposeCommandAction(&globalOptions, args)
 			}
 		},
 	}
@@ -246,7 +249,7 @@ func NewServiceWrapCommand(parentCommand *cobra.Command) {
 		Long:  "Execute command on host with env variables for service.\nFor module uses variables of linked service.\nBy default uses service/module found with current directory.",
 		Args:  cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return actions.WrapCommandAction(globalOptions, args)
+			return actions.WrapCommandAction(&globalOptions, args)
 		},
 	}
 	parentCommand.AddCommand(command)
@@ -263,7 +266,7 @@ func NewServiceExecCommand(parentCommand *cobra.Command) {
 				return cmd.Usage()
 			} else {
 				globalOptions.Cmd = args
-				return actions.ExecAction(globalOptions)
+				return actions.ExecAction(&globalOptions)
 			}
 		},
 	}
@@ -308,6 +311,21 @@ func NewFixUpdateCommand(parentCommand *cobra.Command) {
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return actions.FixUpdateBinaryCommandAction()
+		},
+	}
+	parentCommand.AddCommand(command)
+}
+
+func NewServiceCloneCommand(parentCommand *cobra.Command) {
+	var command = &cobra.Command{
+		Use:           "clone [NAME]",
+		Short:         "Clone component to its path",
+		Long:          "Clone component to its path.",
+		SilenceUsage:  false,
+		SilenceErrors: false,
+		Args:          cobra.ArbitraryArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return actions.CloneComponentAction(&globalOptions, args)
 		},
 	}
 	parentCommand.AddCommand(command)

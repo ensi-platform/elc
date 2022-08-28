@@ -25,6 +25,8 @@ type ComponentConfig struct {
 	Path         string              `yaml:"path"`
 	Replace      bool                `yaml:"replace"`
 	Variables    yaml.MapSlice       `yaml:"variables"`
+	Repository   string              `yaml:"repository"`
+	Tags         []string            `yaml:"tags"`
 }
 
 func (cc ComponentConfig) merge(cc2 ComponentConfig) ComponentConfig {
@@ -50,7 +52,12 @@ func (cc ComponentConfig) merge(cc2 ComponentConfig) ComponentConfig {
 	if cc2.Alias != "" {
 		cc.Alias = cc2.Alias
 	}
+	if cc2.Repository != "" {
+		cc.Repository = cc2.Repository
+	}
+
 	cc.Variables = append(cc.Variables, cc2.Variables...)
+	cc.Tags = append(cc.Tags, cc2.Tags...)
 
 	for depSvc, modes := range cc2.Dependencies {
 		if cc.Dependencies[depSvc] == nil {
