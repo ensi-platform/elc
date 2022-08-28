@@ -92,7 +92,7 @@ func (ws *Workspace) checkVersion() error {
 		return err
 	}
 
-	if vElc.LessThanOrEqual(vCfg) {
+	if vElc.LessThan(vCfg) {
 		return errors.New(fmt.Sprintf("This workspace requires elc version %s. Please, update elc or use another binary.", ws.Config.ElcMinVersion))
 	}
 

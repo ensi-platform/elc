@@ -325,7 +325,11 @@ func (comp *Component) Clone(options *GlobalOptions) error {
 	if !found {
 		return errors.New("path of component is not defined.Check workspace.yaml")
 	}
-	_, err := comp.execInteractive([]string{"git", "clone", comp.Config.Repository, svcPath}, options)
-
-	return err
+	if Pc.FileExists(svcPath) {
+		_, _ = Pc.Printf("Folder of component %s already exists. Skip.\n", comp.Name)
+		return nil
+	} else {
+		_, err := comp.execInteractive([]string{"git", "clone", comp.Config.Repository, svcPath}, options)
+		return err
+	}
 }
