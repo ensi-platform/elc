@@ -2,6 +2,7 @@ package core
 
 import (
 	"errors"
+	"fmt"
 	"gopkg.in/yaml.v2"
 )
 
@@ -57,6 +58,22 @@ func CheckHomeConfigIsEmpty(configPath string) error {
 
 func (hc *HomeConfig) AddWorkspace(name string, path string) error {
 	hc.Workspaces = append(hc.Workspaces, HomeConfigItem{Name: name, Path: path})
+	return SaveHomeConfig(hc)
+}
+
+func (hc *HomeConfig) RemoveWorkspace(name string) error {
+	foundWsIndex := -1
+	for index, ws := range hc.Workspaces {
+		if ws.Name == name {
+			foundWsIndex = index
+		}
+	}
+
+	if foundWsIndex == -1 {
+		return errors.New(fmt.Sprintf("Workspace %s doesn't exists", name))
+	}
+
+	hc.Workspaces = append(hc.Workspaces[:foundWsIndex], hc.Workspaces[foundWsIndex+1:]...)
 	return SaveHomeConfig(hc)
 }
 

@@ -21,8 +21,8 @@ func parseExecFlags(cmd *cobra.Command) {
 func InitCobra() *cobra.Command {
 	globalOptions = core.GlobalOptions{}
 	var rootCmd = &cobra.Command{
-		Use:           "elc",
-		Args:          cobra.MinimumNArgs(1),
+		Use:           "elc [command]",
+		Args:          cobra.MinimumNArgs(0),
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		Version:       core.Version,
@@ -30,8 +30,12 @@ func InitCobra() *cobra.Command {
 			core.Pc = &core.RealPC{}
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			globalOptions.Cmd = args
-			return actions.ExecAction(globalOptions)
+			if len(args) == 0 {
+				return cmd.Help()
+			} else {
+				globalOptions.Cmd = args
+				return actions.ExecAction(globalOptions)
+			}
 		},
 	}
 
@@ -68,6 +72,7 @@ func NewWorkspaceCommand(parentCommand *cobra.Command) {
 	}
 	NewWorkspaceListCommand(command)
 	NewWorkspaceAddCommand(command)
+	NewWorkspaceRemoveCommand(command)
 	NewWorkspaceShowCommand(command)
 	NewWorkspaceSelectCommand(command)
 	parentCommand.AddCommand(command)
@@ -88,7 +93,7 @@ func NewWorkspaceListCommand(parentCommand *cobra.Command) {
 
 func NewWorkspaceAddCommand(parentCommand *cobra.Command) {
 	var command = &cobra.Command{
-		Use:   "add",
+		Use:   "add [NAME] [PATH]",
 		Short: "Register new workspace",
 		Long:  "Register new workspace.",
 		Args:  cobra.ExactArgs(2),
@@ -97,6 +102,21 @@ func NewWorkspaceAddCommand(parentCommand *cobra.Command) {
 			wsPath := args[1]
 
 			return actions.AddWorkspaceAction(name, wsPath)
+		},
+	}
+	parentCommand.AddCommand(command)
+}
+
+func NewWorkspaceRemoveCommand(parentCommand *cobra.Command) {
+	var command = &cobra.Command{
+		Use:   "remove [NAME]",
+		Short: "Remove workspace from ~/.elc.yaml",
+		Long:  "Remove workspace from ~/.elc.yaml.",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			name := args[0]
+
+			return actions.RemoveWorkspaceAction(name)
 		},
 	}
 	parentCommand.AddCommand(command)
@@ -117,7 +137,7 @@ func NewWorkspaceShowCommand(parentCommand *cobra.Command) {
 
 func NewWorkspaceSelectCommand(parentCommand *cobra.Command) {
 	var command = &cobra.Command{
-		Use:   "select",
+		Use:   "select [NAME]",
 		Short: "Set current workspace",
 		Long:  "Set workspace with name NAME as current.",
 		Args:  cobra.ExactArgs(1),
@@ -131,9 +151,9 @@ func NewWorkspaceSelectCommand(parentCommand *cobra.Command) {
 
 func NewServiceStartCommand(parentCommand *cobra.Command) {
 	var command = &cobra.Command{
-		Use:   "start",
+		Use:   "start [OPTIONS] [NAME]",
 		Short: "Start one or more services",
-		Long:  "By default starts service found with current directory, but you can pass one or more service names instead.",
+		Long:  "Start one or more services.\nBy default starts service found with current directory, but you can pass one or more service names instead.",
 		Args:  cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return actions.StartServiceAction(&globalOptions, args)
@@ -146,9 +166,9 @@ func NewServiceStartCommand(parentCommand *cobra.Command) {
 func NewServiceStopCommand(parentCommand *cobra.Command) {
 	var stopAll bool
 	var command = &cobra.Command{
-		Use:   "stop",
+		Use:   "stop [OPTIONS] [NAME]",
 		Short: "Stop one or more services",
-		Long:  "By default stops service found with current directory, but you can pass one or more service names instead.",
+		Long:  "Stop one or more services.\nBy default stops service found with current directory, but you can pass one or more service names instead.",
 		Args:  cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return actions.StopServiceAction(stopAll, args, false, &globalOptions)
@@ -161,9 +181,9 @@ func NewServiceStopCommand(parentCommand *cobra.Command) {
 func NewServiceDestroyCommand(parentCommand *cobra.Command) {
 	var destroyAll bool
 	var command = &cobra.Command{
-		Use:   "destroy",
+		Use:   "destroy [OPTIONS] [NAME]",
 		Short: "Stop and remove containers of one or more services",
-		Long:  "By default destroys service found with current directory, but you can pass one or more service names instead.",
+		Long:  "Stop and remove containers of one or more services.\nBy default destroys service found with current directory, but you can pass one or more service names instead.",
 		Args:  cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return actions.StopServiceAction(destroyAll, args, true, &globalOptions)
@@ -176,9 +196,9 @@ func NewServiceDestroyCommand(parentCommand *cobra.Command) {
 func NewServiceRestartCommand(parentCommand *cobra.Command) {
 	var hardRestart bool
 	var command = &cobra.Command{
-		Use:   "restart",
+		Use:   "restart [OPTIONS] [NAME]",
 		Short: "Restart one or more services",
-		Long:  "By default restart service found with current directory, but you can pass one or more service names instead.",
+		Long:  "Restart one or more services.\nBy default restart service found with current directory, but you can pass one or more service names instead.",
 		Args:  cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return actions.RestartServiceAction(hardRestart, args, &globalOptions)
@@ -190,9 +210,9 @@ func NewServiceRestartCommand(parentCommand *cobra.Command) {
 
 func NewServiceVarsCommand(parentCommand *cobra.Command) {
 	var command = &cobra.Command{
-		Use:   "vars",
+		Use:   "vars [NAME]",
 		Short: "Print all variables computed for service",
-		Long:  "By default uses service found with current directory, but you can pass name of another service instead.",
+		Long:  "Print all variables computed for service.\nBy default uses service found with current directory, but you can pass name of another service instead.",
 		Args:  cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return actions.PrintVarsAction(args)
@@ -203,12 +223,16 @@ func NewServiceVarsCommand(parentCommand *cobra.Command) {
 
 func NewServiceComposeCommand(parentCommand *cobra.Command) {
 	var command = &cobra.Command{
-		Use:   "compose",
+		Use:   "compose [OPTIONS] [COMMAND]",
 		Short: "Run docker-compose command",
-		Long:  "By default uses service found with current directory.",
-		Args:  cobra.MinimumNArgs(1),
+		Long:  "Run docker-compose command.\nBy default uses service found with current directory.",
+		Args:  cobra.MinimumNArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return actions.ComposeCommandAction(args, globalOptions)
+			if len(args) == 0 {
+				return cmd.Help()
+			} else {
+				return actions.ComposeCommandAction(args, globalOptions)
+			}
 		},
 	}
 	command.Flags().SetInterspersed(false)
@@ -217,9 +241,9 @@ func NewServiceComposeCommand(parentCommand *cobra.Command) {
 
 func NewServiceWrapCommand(parentCommand *cobra.Command) {
 	var command = &cobra.Command{
-		Use:   "wrap",
+		Use:   "wrap [COMMAND]",
 		Short: "Execute command on host with env variables for service. For module uses variables of linked service",
-		Long:  "By default uses service/module found with current directory.",
+		Long:  "Execute command on host with env variables for service.\nFor module uses variables of linked service.\nBy default uses service/module found with current directory.",
 		Args:  cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return actions.WrapCommandAction(globalOptions, args)
@@ -230,13 +254,17 @@ func NewServiceWrapCommand(parentCommand *cobra.Command) {
 
 func NewServiceExecCommand(parentCommand *cobra.Command) {
 	var command = &cobra.Command{
-		Use:   "exec",
+		Use:   "exec [OPTIONS] [COMMAND]",
 		Short: "Execute command in container. For module uses container of linked service",
-		Long:  "By default uses service/module found with current directory. Starts service if it is not running.",
-		Args:  cobra.MinimumNArgs(1),
+		Long:  "Execute command in container. For module uses container of linked service.\nBy default uses service/module found with current directory. Starts service if it is not running.",
+		Args:  cobra.MinimumNArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			globalOptions.Cmd = args
-			return actions.ExecAction(globalOptions)
+			if len(args) == 0 {
+				return cmd.Usage()
+			} else {
+				globalOptions.Cmd = args
+				return actions.ExecAction(globalOptions)
+			}
 		},
 	}
 	command.Flags().SetInterspersed(false)
@@ -247,9 +275,9 @@ func NewServiceExecCommand(parentCommand *cobra.Command) {
 
 func NewServiceSetHooksCommand(parentCommand *cobra.Command) {
 	var command = &cobra.Command{
-		Use:   "set-hooks",
+		Use:   "set-hooks [HOOKS_DIR]",
 		Short: "Install hooks from specified folder to .git/hooks",
-		Long:  "HOOKS_PATH must contain subdirectories with names as git hooks, eg. 'pre-commit'.\nOne subdirectory can contain one or many scripts with .sh extension.\nEvery script wil be wrapped with 'elc --tag=hook' command.",
+		Long:  "Install hooks from specified folder to .git/hooks.\nHOOKS_PATH must contain subdirectories with names as git hooks, eg. 'pre-commit'.\nOne subdirectory can contain one or many scripts with .sh extension.\nEvery script wil be wrapped with 'elc --tag=hook' command.",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return actions.SetGitHooksAction(args[0], os.Args[0])
@@ -263,7 +291,7 @@ func NewUpdateCommand(parentCommand *cobra.Command) {
 	var command = &cobra.Command{
 		Use:   "update",
 		Short: "Update elc binary",
-		Long:  "Download new version of ELC, place it to /opt/elc/ and update symlink at /usr/local/bin.",
+		Long:  "Update elc binary.\nDownload new version of ELC, place it to /opt/elc/ and update symlink at /usr/local/bin.",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return actions.UpdateBinaryAction(version)

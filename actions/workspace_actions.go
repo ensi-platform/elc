@@ -48,6 +48,17 @@ func AddWorkspaceAction(name string, wsPath string) error {
 	return nil
 }
 
+func RemoveWorkspaceAction(name string) error {
+	hc, err := core.CheckAndLoadHC()
+	if err != nil {
+		return err
+	}
+
+	_, _ = core.Pc.Printf("workspace '%s' is removed\n", name)
+
+	return hc.RemoveWorkspace(name)
+}
+
 func ShowCurrentWorkspaceAction() error {
 	hc, err := core.CheckAndLoadHC()
 	if err != nil {
