@@ -152,11 +152,13 @@ func PrintVarsAction(svcNames []string) error {
 	return nil
 }
 
-func ComposeCommandAction(composeParams core.GlobalOptions) error {
+func ComposeCommandAction(args []string, composeParams core.GlobalOptions) error {
 	ws, err := core.GetWorkspaceConfig()
 	if err != nil {
 		return err
 	}
+
+	composeParams.Cmd = args
 
 	if composeParams.ComponentName == "" {
 		composeParams.ComponentName, err = ws.ComponentNameByPath()

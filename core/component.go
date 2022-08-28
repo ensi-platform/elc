@@ -254,6 +254,18 @@ func (comp *Component) Exec(options *GlobalOptions) (int, error) {
 	}
 	if options.UID > -1 {
 		command = append(command, "-u", strconv.Itoa(options.UID))
+	} else {
+		userId, found := comp.Context.find("USER_ID")
+		if !found {
+			return 0, errors.New("variable USER_ID is not defined")
+		}
+
+		groupId, found := comp.Context.find("GROUP_ID")
+		if !found {
+			return 0, errors.New("variable USER_ID is not defined")
+		}
+
+		command = append(command, "-u", fmt.Sprintf("%s:%s", userId, groupId))
 	}
 
 	if !Pc.IsTerminal() {

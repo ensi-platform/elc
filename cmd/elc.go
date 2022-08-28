@@ -208,7 +208,7 @@ func NewServiceComposeCommand(parentCommand *cobra.Command) {
 		Long:  "By default uses service found with current directory.",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return actions.ComposeCommandAction(globalOptions)
+			return actions.ComposeCommandAction(args, globalOptions)
 		},
 	}
 	command.Flags().SetInterspersed(false)
@@ -241,6 +241,7 @@ func NewServiceExecCommand(parentCommand *cobra.Command) {
 	}
 	command.Flags().SetInterspersed(false)
 	parseStartFlags(command)
+	parseExecFlags(command)
 	parentCommand.AddCommand(command)
 }
 
