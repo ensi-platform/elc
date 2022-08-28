@@ -42,7 +42,7 @@ else
   if [ "$?" = "0" ]; then
     echo "Download complete."
     chmod +x "$targetFile"
-    $targetFile version $> /dev/null
+    $targetFile --version $> /dev/null
     if [ "$?" != "0" ]; then
       echo "ERROR: Downloaded file is not executable"
       exit 1
