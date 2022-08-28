@@ -317,6 +317,7 @@ func NewFixUpdateCommand(parentCommand *cobra.Command) {
 }
 
 func NewServiceCloneCommand(parentCommand *cobra.Command) {
+	var noHook bool
 	var command = &cobra.Command{
 		Use:           "clone [NAME]",
 		Short:         "Clone component to its path",
@@ -325,8 +326,10 @@ func NewServiceCloneCommand(parentCommand *cobra.Command) {
 		SilenceErrors: false,
 		Args:          cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return actions.CloneComponentAction(&globalOptions, args)
+			return actions.CloneComponentAction(&globalOptions, args, noHook)
 		},
 	}
+
+	command.Flags().BoolVar(&noHook, "no-hook", false, "do not execute hook script after cloning")
 	parentCommand.AddCommand(command)
 }

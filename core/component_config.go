@@ -14,19 +14,20 @@ func (s ModeList) contains(v string) bool {
 }
 
 type ComponentConfig struct {
-	Alias        string              `yaml:"alias"`
-	ComposeFile  string              `yaml:"compose_file"`
-	Dependencies map[string]ModeList `yaml:"dependencies"`
-	ExecPath     string              `yaml:"exec_path"`
-	Extends      string              `yaml:"extends"`
-	HostedIn     string              `yaml:"hosted_in"`
-	Hostname     string              `yaml:"hostname"`
-	IsTemplate   bool                `yaml:"is_template"`
-	Path         string              `yaml:"path"`
-	Replace      bool                `yaml:"replace"`
-	Variables    yaml.MapSlice       `yaml:"variables"`
-	Repository   string              `yaml:"repository"`
-	Tags         []string            `yaml:"tags"`
+	Alias          string              `yaml:"alias"`
+	ComposeFile    string              `yaml:"compose_file"`
+	Dependencies   map[string]ModeList `yaml:"dependencies"`
+	ExecPath       string              `yaml:"exec_path"`
+	Extends        string              `yaml:"extends"`
+	HostedIn       string              `yaml:"hosted_in"`
+	Hostname       string              `yaml:"hostname"`
+	IsTemplate     bool                `yaml:"is_template"`
+	Path           string              `yaml:"path"`
+	Replace        bool                `yaml:"replace"`
+	Variables      yaml.MapSlice       `yaml:"variables"`
+	Repository     string              `yaml:"repository"`
+	Tags           []string            `yaml:"tags"`
+	AfterCloneHook string              `yaml:"after_clone_hook"`
 }
 
 func (cc ComponentConfig) merge(cc2 ComponentConfig) ComponentConfig {
@@ -54,6 +55,9 @@ func (cc ComponentConfig) merge(cc2 ComponentConfig) ComponentConfig {
 	}
 	if cc2.Repository != "" {
 		cc.Repository = cc2.Repository
+	}
+	if cc2.AfterCloneHook != "" {
+		cc.AfterCloneHook = cc2.AfterCloneHook
 	}
 
 	cc.Variables = append(cc.Variables, cc2.Variables...)

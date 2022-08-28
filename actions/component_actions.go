@@ -291,7 +291,7 @@ func SetGitHooksAction(scriptsFolder string, elcBinary string) error {
 	return nil
 }
 
-func CloneComponentAction(options *core.GlobalOptions, svcNames []string) error {
+func CloneComponentAction(options *core.GlobalOptions, svcNames []string, noHook bool) error {
 	ws, err := core.GetWorkspaceConfig()
 	if err != nil {
 		return err
@@ -308,7 +308,7 @@ func CloneComponentAction(options *core.GlobalOptions, svcNames []string) error 
 			return err
 		}
 
-		err = comp.Clone(options)
+		err = comp.Clone(options, noHook)
 		if err != nil {
 			return err
 		}

@@ -317,7 +317,15 @@ func (comp *Component) DumpVars() error {
 	return nil
 }
 
-func (comp *Component) Clone(options *GlobalOptions) error {
+func (comp *Component) getAfterCloneHook() string {
+	if comp.Config.AfterCloneHook != "" {
+		return comp.Config.AfterCloneHook
+	}
+
+	return comp.Template.AfterCloneHook
+}
+
+func (comp *Component) Clone(options *GlobalOptions, noHook bool) error {
 	if comp.Config.Repository == "" {
 		return errors.New(fmt.Sprintf("repository of component %s is not defined. Check workspace.yaml", comp.Name))
 	}
@@ -330,6 +338,24 @@ func (comp *Component) Clone(options *GlobalOptions) error {
 		return nil
 	} else {
 		_, err := comp.execInteractive([]string{"git", "clone", comp.Config.Repository, svcPath}, options)
-		return err
+		if err != nil {
+			return err
+		}
+
+		if !noHook {
+			afterCloneHook := comp.getAfterCloneHook()
+			afterCloneHook, err = comp.Context.RenderString(afterCloneHook)
+			if err != nil {
+				return err
+			}
+
+			if afterCloneHook != "" {
+				_, err = comp.execInteractive([]string{afterCloneHook}, options)
+				if err != nil {
+					return err
+				}
+			}
+		}
+		return nil
 	}
 }
