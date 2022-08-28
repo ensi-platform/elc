@@ -1,4 +1,4 @@
-package src
+package core
 
 import (
 	"errors"
@@ -17,7 +17,7 @@ type HomeConfig struct {
 	Workspaces       []HomeConfigItem `yaml:"workspaces"`
 }
 
-const defaultUpdateCommand = "curl -sSL https://raw.githubusercontent.com/ensi-platform/elc/master/get.sh | sudo -E bash"
+const DefaultUpdateCommand = "curl -sSL https://raw.githubusercontent.com/ensi-platform/elc/master/get.sh | sudo -E bash"
 
 func LoadHomeConfig(configPath string) (*HomeConfig, error) {
 	yamlFile, err := Pc.ReadFile(configPath)
@@ -52,7 +52,7 @@ func CheckHomeConfigIsEmpty(configPath string) error {
 	if Pc.FileExists(configPath) {
 		return nil
 	}
-	return SaveHomeConfig(&HomeConfig{Path: configPath, UpdateCommand: defaultUpdateCommand})
+	return SaveHomeConfig(&HomeConfig{Path: configPath, UpdateCommand: DefaultUpdateCommand})
 }
 
 func (hc *HomeConfig) AddWorkspace(name string, path string) error {
@@ -74,7 +74,7 @@ func (hc *HomeConfig) GetCurrentWsPath() (string, error) {
 	return "", errors.New("current workspace is bad")
 }
 
-func (hc *HomeConfig) findWorkspace(name string) *HomeConfigItem {
+func (hc *HomeConfig) FindWorkspace(name string) *HomeConfigItem {
 	for _, workspace := range hc.Workspaces {
 		if workspace.Name == name {
 			return &workspace

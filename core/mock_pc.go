@@ -2,7 +2,7 @@
 // Source: src/pc.go
 
 // Package src is a generated GoMock package.
-package src
+package core
 
 import (
 	os "os"
