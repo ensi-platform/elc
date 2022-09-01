@@ -208,7 +208,7 @@ func NewServiceRestartCommand(parentCommand *cobra.Command) {
 			return actions.RestartServiceAction(hardRestart, args, &globalOptions)
 		},
 	}
-	command.Flags().BoolVar(&hardRestart, "all", false, "destroy container instead of stop it before start")
+	command.Flags().BoolVar(&hardRestart, "hard", false, "destroy container instead of stop it before start")
 	parentCommand.AddCommand(command)
 }
 
