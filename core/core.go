@@ -20,6 +20,7 @@ type GlobalOptions struct {
 	UID           int
 	Tag           string
 	DryRun        bool
+	NoTty         bool
 }
 
 func contains(list []string, item string) bool {
@@ -94,7 +95,7 @@ func GenerateHookScript(scripts []string, elcBinary string) string {
 	result = append(result, "set -e")
 	result = append(result, `printf "\x1b[0;34m%s\x1b[39;49;00m\n" "Run hook in ELC"`)
 	for _, script := range scripts {
-		result = append(result, fmt.Sprintf("%s --mode=hook %s", elcBinary, script))
+		result = append(result, fmt.Sprintf("%s --mode=hook --no-tty %s", elcBinary, script))
 	}
 
 	return strings.Join(result, "\n")

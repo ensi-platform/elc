@@ -286,7 +286,7 @@ func (comp *Component) Exec(options *GlobalOptions) (int, error) {
 		command = append(command, "-u", fmt.Sprintf("%s:%s", userId, groupId))
 	}
 
-	if !Pc.IsTerminal() {
+	if options.NoTty || !Pc.IsTerminal() {
 		command = append(command, "-T")
 	}
 	command = append(command, "app")

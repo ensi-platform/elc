@@ -16,6 +16,7 @@ func parseStartFlags(cmd *cobra.Command) {
 
 func parseExecFlags(cmd *cobra.Command) {
 	cmd.Flags().IntVar(&globalOptions.UID, "uid", -1, "use another uid, by default uses uid of current user")
+	cmd.Flags().BoolVar(&globalOptions.NoTty, "no-tty", false, "disable pseudo-TTY allocation")
 }
 
 func InitCobra() *cobra.Command {
