@@ -322,7 +322,11 @@ func (comp *Component) getAfterCloneHook() string {
 		return comp.Config.AfterCloneHook
 	}
 
-	return comp.Template.AfterCloneHook
+	if comp.Template != nil {
+		return comp.Template.AfterCloneHook
+	}
+
+	return ""
 }
 
 func (comp *Component) Clone(options *GlobalOptions, noHook bool) error {
@@ -344,6 +348,10 @@ func (comp *Component) Clone(options *GlobalOptions, noHook bool) error {
 
 		if !noHook {
 			afterCloneHook := comp.getAfterCloneHook()
+			if afterCloneHook == "" {
+				return nil
+			}
+
 			afterCloneHook, err = comp.Context.RenderString(afterCloneHook)
 			if err != nil {
 				return err
