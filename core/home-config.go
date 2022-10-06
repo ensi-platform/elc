@@ -4,11 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"gopkg.in/yaml.v2"
+	"strings"
 )
 
 type HomeConfigItem struct {
-	Name string `yaml:"name"`
-	Path string `yaml:"path"`
+	Name     string `yaml:"name"`
+	Path     string `yaml:"path"`
+	RootPath string `yaml:"root_path"`
 }
 
 type HomeConfig struct {
@@ -77,24 +79,64 @@ func (hc *HomeConfig) RemoveWorkspace(name string) error {
 	return SaveHomeConfig(hc)
 }
 
-func (hc *HomeConfig) GetCurrentWsPath() (string, error) {
-	if hc.CurrentWorkspace == "" {
-		return "", errors.New("current workspace is not set")
+func (hc *HomeConfig) GetCurrentWorkspace(wsName string) (*HomeConfigItem, error) {
+	if wsName != "" {
+		hci := hc.FindWorkspace(wsName)
+		if hci == nil {
+			return nil, errors.New("undefined workspace")
+		}
+		return hci, nil
 	}
 
-	for _, hci := range hc.Workspaces {
+	if hc.CurrentWorkspace == "" {
+		return nil, errors.New("current workspace is not set")
+	}
+
+	if hc.CurrentWorkspace == "auto" {
+		hci, err := hc.FindWorkspaceByPath()
+		if err != nil {
+			return nil, err
+		}
+
+		return hci, nil
+	}
+
+	for index, hci := range hc.Workspaces {
 		if hci.Name == hc.CurrentWorkspace {
-			return hci.Path, nil
+			return &hc.Workspaces[index], nil
 		}
 	}
 
-	return "", errors.New("current workspace is bad")
+	return nil, errors.New("current workspace is bad")
+}
+
+func (hc *HomeConfig) GetCurrentWsPath(wsName string) (string, error) {
+	hci, err := hc.GetCurrentWorkspace(wsName)
+	if err != nil {
+		return "", err
+	}
+
+	return hci.Path, nil
+}
+
+func (hc *HomeConfig) FindWorkspaceByPath() (*HomeConfigItem, error) {
+	cwd, err := Pc.Getwd()
+	if err != nil {
+		return nil, err
+	}
+	for index, hci := range hc.Workspaces {
+		if hci.RootPath != "" && strings.HasPrefix(cwd, hci.RootPath) {
+			return &hc.Workspaces[index], nil
+		}
+	}
+
+	return nil, errors.New("you are not in any workspace")
 }
 
 func (hc *HomeConfig) FindWorkspace(name string) *HomeConfigItem {
-	for _, workspace := range hc.Workspaces {
-		if workspace.Name == name {
-			return &workspace
+	for index, hci := range hc.Workspaces {
+		if hci.Name == name {
+			return &hc.Workspaces[index]
 		}
 	}
 

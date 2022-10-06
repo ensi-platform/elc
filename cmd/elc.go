@@ -79,6 +79,7 @@ func NewWorkspaceCommand(parentCommand *cobra.Command) {
 	NewWorkspaceRemoveCommand(command)
 	NewWorkspaceShowCommand(command)
 	NewWorkspaceSelectCommand(command)
+	NewWorkspaceSetRootCommand(command)
 	parentCommand.AddCommand(command)
 }
 
@@ -133,7 +134,7 @@ func NewWorkspaceShowCommand(parentCommand *cobra.Command) {
 		Long:  "Print current workspace name.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			core.Pc = &core.RealPC{}
-			return actions.ShowCurrentWorkspaceAction()
+			return actions.ShowCurrentWorkspaceAction(&globalOptions)
 		},
 	}
 	parentCommand.AddCommand(command)
@@ -148,6 +149,19 @@ func NewWorkspaceSelectCommand(parentCommand *cobra.Command) {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 			return actions.SelectWorkspaceAction(name)
+		},
+	}
+	parentCommand.AddCommand(command)
+}
+
+func NewWorkspaceSetRootCommand(parentCommand *cobra.Command) {
+	var command = &cobra.Command{
+		Use:   "set-root [NAME] [PATH]",
+		Short: "Set root path for workspace",
+		Long:  "Set root path for workspace.",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return actions.SetRootPathAction(args[0], args[1])
 		},
 	}
 	parentCommand.AddCommand(command)

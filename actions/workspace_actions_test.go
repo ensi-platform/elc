@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"github.com/madridianfox/elc/core"
 	"os"
 	"testing"
 )
@@ -11,7 +12,7 @@ func TestWorkspaceShow(t *testing.T) {
 
 	mockPc.EXPECT().Println("project1")
 
-	_ = ShowCurrentWorkspaceAction()
+	_ = ShowCurrentWorkspaceAction(&core.GlobalOptions{})
 }
 
 func TestWorkspaceList(t *testing.T) {
@@ -33,10 +34,13 @@ update_command: update
 workspaces:
 - name: project1
   path: /tmp/workspaces/project1
+  root_path: ""
 - name: project2
   path: /tmp/workspaces/project2
+  root_path: ""
 - name: project3
   path: /tmp/workspaces/project3
+  root_path: ""
 `
 
 	mockPc.EXPECT().WriteFile(fakeHomeConfigPath, []byte(homeConfigForAdd), os.FileMode(0644))
@@ -54,8 +58,10 @@ update_command: update
 workspaces:
 - name: project1
   path: /tmp/workspaces/project1
+  root_path: ""
 - name: project2
   path: /tmp/workspaces/project2
+  root_path: ""
 `
 
 	mockPc.EXPECT().WriteFile(fakeHomeConfigPath, []byte(homeConfigForSelect), os.FileMode(0644))

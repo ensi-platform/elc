@@ -22,13 +22,13 @@ func CheckAndLoadHC() (*HomeConfig, error) {
 	return hc, nil
 }
 
-func GetWorkspaceConfig() (*Workspace, error) {
+func GetWorkspaceConfig(wsName string) (*Workspace, error) {
 	hc, err := CheckAndLoadHC()
 	if err != nil {
 		return nil, err
 	}
 
-	wsPath, err := hc.GetCurrentWsPath()
+	wsPath, err := hc.GetCurrentWsPath(wsName)
 	if err != nil {
 		return nil, err
 	}

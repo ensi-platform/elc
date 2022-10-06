@@ -31,7 +31,7 @@ func resolveCompNames(ws *core.Workspace, options *core.GlobalOptions, namesFrom
 }
 
 func StartServiceAction(options *core.GlobalOptions, svcNames []string) error {
-	ws, err := core.GetWorkspaceConfig()
+	ws, err := core.GetWorkspaceConfig(options.WorkspaceName)
 	if err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ func StartServiceAction(options *core.GlobalOptions, svcNames []string) error {
 }
 
 func StopServiceAction(stopAll bool, svcNames []string, destroy bool, options *core.GlobalOptions) error {
-	ws, err := core.GetWorkspaceConfig()
+	ws, err := core.GetWorkspaceConfig(options.WorkspaceName)
 	if err != nil {
 		return err
 	}
@@ -92,7 +92,7 @@ func StopServiceAction(stopAll bool, svcNames []string, destroy bool, options *c
 }
 
 func RestartServiceAction(hardRestart bool, svcNames []string, options *core.GlobalOptions) error {
-	ws, err := core.GetWorkspaceConfig()
+	ws, err := core.GetWorkspaceConfig(options.WorkspaceName)
 	if err != nil {
 		return err
 	}
@@ -118,7 +118,7 @@ func RestartServiceAction(hardRestart bool, svcNames []string, options *core.Glo
 }
 
 func PrintVarsAction(options *core.GlobalOptions, svcNames []string) error {
-	ws, err := core.GetWorkspaceConfig()
+	ws, err := core.GetWorkspaceConfig(options.WorkspaceName)
 	if err != nil {
 		return err
 	}
@@ -146,7 +146,7 @@ func PrintVarsAction(options *core.GlobalOptions, svcNames []string) error {
 }
 
 func ComposeCommandAction(options *core.GlobalOptions, args []string) error {
-	ws, err := core.GetWorkspaceConfig()
+	ws, err := core.GetWorkspaceConfig(options.WorkspaceName)
 	if err != nil {
 		return err
 	}
@@ -176,7 +176,7 @@ func ComposeCommandAction(options *core.GlobalOptions, args []string) error {
 }
 
 func WrapCommandAction(options *core.GlobalOptions, command []string) error {
-	ws, err := core.GetWorkspaceConfig()
+	ws, err := core.GetWorkspaceConfig(options.WorkspaceName)
 	if err != nil {
 		return err
 	}
@@ -217,7 +217,7 @@ func WrapCommandAction(options *core.GlobalOptions, command []string) error {
 }
 
 func ExecAction(options *core.GlobalOptions) error {
-	ws, err := core.GetWorkspaceConfig()
+	ws, err := core.GetWorkspaceConfig(options.WorkspaceName)
 	if err != nil {
 		return err
 	}
@@ -292,7 +292,7 @@ func SetGitHooksAction(scriptsFolder string, elcBinary string) error {
 }
 
 func CloneComponentAction(options *core.GlobalOptions, svcNames []string, noHook bool) error {
-	ws, err := core.GetWorkspaceConfig()
+	ws, err := core.GetWorkspaceConfig(options.WorkspaceName)
 	if err != nil {
 		return err
 	}

@@ -59,16 +59,45 @@ func RemoveWorkspaceAction(name string) error {
 	return hc.RemoveWorkspace(name)
 }
 
-func ShowCurrentWorkspaceAction() error {
+func ShowCurrentWorkspaceAction(options *core.GlobalOptions) error {
 	hc, err := core.CheckAndLoadHC()
 	if err != nil {
 		return err
 	}
-	_, _ = core.Pc.Println(hc.CurrentWorkspace)
+	hci, err := hc.GetCurrentWorkspace(options.WorkspaceName)
+	if err != nil {
+		return err
+	}
+
+	_, _ = core.Pc.Println(hci.Name)
 	return nil
 }
 
 func SelectWorkspaceAction(name string) error {
+	hc, err := core.CheckAndLoadHC()
+	if err != nil {
+		return err
+	}
+
+	if name != "auto" {
+		ws := hc.FindWorkspace(name)
+		if ws == nil {
+			return errors.New(fmt.Sprintf("workspace with name '%s' is not defined", name))
+		}
+	}
+
+	hc.CurrentWorkspace = name
+	err = core.SaveHomeConfig(hc)
+	if err != nil {
+		return err
+	}
+
+	_, _ = core.Pc.Printf("active workspace changed to '%s'\n", name)
+
+	return nil
+}
+
+func SetRootPathAction(name string, rootPath string) error {
 	hc, err := core.CheckAndLoadHC()
 	if err != nil {
 		return err
@@ -79,13 +108,13 @@ func SelectWorkspaceAction(name string) error {
 		return errors.New(fmt.Sprintf("workspace with name '%s' is not defined", name))
 	}
 
-	hc.CurrentWorkspace = name
+	ws.RootPath = rootPath
 	err = core.SaveHomeConfig(hc)
 	if err != nil {
 		return err
 	}
 
-	_, _ = core.Pc.Printf("active workspace changed to '%s'\n", name)
+	_, _ = core.Pc.Printf("path saved\n")
 
 	return nil
 }
