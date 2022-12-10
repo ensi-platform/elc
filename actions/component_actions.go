@@ -30,6 +30,20 @@ func resolveCompNames(ws *core.Workspace, options *core.GlobalOptions, namesFrom
 	return compNames, nil
 }
 
+func ListCompNames(ws *core.Workspace, options *core.GlobalOptions) ([]string, error) {
+	var compNames []string
+	if options.Tag == "" {
+		return ws.GetComponentNamesList(), nil
+	}
+
+	compNames = ws.FindComponentNamesByTag(options.Tag)
+	if len(compNames) == 0 {
+		return nil, errors.New(fmt.Sprintf("components with tag %s not found", options.Tag))
+	}
+
+	return compNames, nil
+}
+
 func StartServiceAction(options *core.GlobalOptions, svcNames []string) error {
 	ws, err := core.GetWorkspaceConfig(options.WorkspaceName)
 	if err != nil {
@@ -312,6 +326,24 @@ func CloneComponentAction(options *core.GlobalOptions, svcNames []string, noHook
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func ListServicesAction(options *core.GlobalOptions) error {
+	ws, err := core.GetWorkspaceConfig(options.WorkspaceName)
+	if err != nil {
+		return err
+	}
+
+	compNames, err := ListCompNames(ws, options)
+	if err != nil {
+		return err
+	}
+
+	for _, compName := range compNames {
+		_, _ = core.Pc.Println(compName)
 	}
 
 	return nil

@@ -65,6 +65,7 @@ func InitCobra() *cobra.Command {
 	NewUpdateCommand(rootCmd)
 	NewFixUpdateCommand(rootCmd)
 	NewServiceCloneCommand(rootCmd)
+	NewServiceListCommand(rootCmd)
 
 	return rootCmd
 }
@@ -346,5 +347,18 @@ func NewServiceCloneCommand(parentCommand *cobra.Command) {
 	}
 
 	command.Flags().BoolVar(&noHook, "no-hook", false, "do not execute hook script after cloning")
+	parentCommand.AddCommand(command)
+}
+
+func NewServiceListCommand(parentCommand *cobra.Command) {
+	var command = &cobra.Command{
+		Use:   "list [OPTIONS]",
+		Short: "Show list of services",
+		Long:  "Show list of services.\nCan be used in scripts for loops.",
+		Args:  cobra.ArbitraryArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return actions.ListServicesAction(&globalOptions)
+		},
+	}
 	parentCommand.AddCommand(command)
 }
