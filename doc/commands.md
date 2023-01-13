@@ -184,6 +184,25 @@ elc htop
 elc bash
 ```
 
+## run
+```
+exec run [OPTIONS] <SHELL-COMMAND>
+```
+Выполнить `<SHELL-COMMAND>` в отдельном контейнере текущего сервиса.  
+Выполняет `docker compose run` не запуская ни сам сервис, ни его зависимости.
+
+Опции:
+* `--component=NAME`, - указать другой сервис вместо текущего
+* `--uid` - идентификатор пользователя, по умолчанию использует переменную воркспейса USER_ID
+* `--no-tty` - не выделять псевдо-TTY
+
+Примеры:
+```
+elc run composer install
+elc run --component=other-service npm run spectral
+elc run --uid=0 --component=database psql -Upostgres
+```
+
 ## compose
 ```
 compose [OPTIONS] <DOCKER-COMPOSE-COMMAND>

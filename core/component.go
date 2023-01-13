@@ -300,6 +300,41 @@ func (comp *Component) Exec(options *GlobalOptions) (int, error) {
 	return code, nil
 }
 
+func (comp *Component) Run(options *GlobalOptions) (int, error) {
+	command := []string{"run", "--rm", "--entrypoint=''"}
+	if options.WorkingDir != "" {
+		command = append(command, "-w", options.WorkingDir)
+	}
+	if options.UID > -1 {
+		command = append(command, "-u", strconv.Itoa(options.UID))
+	} else {
+		userId, found := comp.Context.find("USER_ID")
+		if !found {
+			return 0, errors.New("variable USER_ID is not defined")
+		}
+
+		groupId, found := comp.Context.find("GROUP_ID")
+		if !found {
+			return 0, errors.New("variable USER_ID is not defined")
+		}
+
+		command = append(command, "-u", fmt.Sprintf("%s:%s", userId, groupId))
+	}
+
+	if options.NoTty || !Pc.IsTerminal() {
+		command = append(command, "-T")
+	}
+	command = append(command, "app")
+
+	command = append(command, options.Cmd...)
+	code, err := comp.execComposeInteractive(command, options)
+	if err != nil {
+		return 0, err
+	}
+
+	return code, nil
+}
+
 func (comp *Component) Wrap(command []string, options *GlobalOptions) (int, error) {
 	code, err := comp.execInteractive(command, options)
 	if err != nil {

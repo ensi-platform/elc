@@ -61,6 +61,7 @@ func InitCobra() *cobra.Command {
 	NewServiceComposeCommand(rootCmd)
 	NewServiceWrapCommand(rootCmd)
 	NewServiceExecCommand(rootCmd)
+	NewServiceRunCommand(rootCmd)
 	NewServiceSetHooksCommand(rootCmd)
 	NewUpdateCommand(rootCmd)
 	NewFixUpdateCommand(rootCmd)
@@ -288,6 +289,25 @@ func NewServiceExecCommand(parentCommand *cobra.Command) {
 	}
 	command.Flags().SetInterspersed(false)
 	parseStartFlags(command)
+	parseExecFlags(command)
+	parentCommand.AddCommand(command)
+}
+func NewServiceRunCommand(parentCommand *cobra.Command) {
+	var command = &cobra.Command{
+		Use:   "run [OPTIONS] [COMMAND]",
+		Short: "Run new container with command. For module uses container of linked service",
+		Long:  "Run new container with command. For module uses container of linked service.\nBy default uses service/module found with current directory. Starts service if it is not running.",
+		Args:  cobra.MinimumNArgs(0),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return cmd.Usage()
+			} else {
+				globalOptions.Cmd = args
+				return actions.RunAction(&globalOptions)
+			}
+		},
+	}
+	command.Flags().SetInterspersed(false)
 	parseExecFlags(command)
 	parentCommand.AddCommand(command)
 }

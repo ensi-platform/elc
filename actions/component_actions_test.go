@@ -379,6 +379,24 @@ func TestServiceExecWithUid(t *testing.T) {
 	})
 }
 
+func TestServiceRun(t *testing.T) {
+	mockPc := setupMockPc(t)
+	expectReadHomeConfig(mockPc)
+	expectReadWorkspaceConfig(mockPc, fakeWorkspacePath, workspaceConfigWithDeps, "")
+
+	mockPc.EXPECT().
+		IsTerminal().
+		Return(true)
+	mockPc.EXPECT().
+		ExecInteractive([]string{"docker", "compose", "-f", path.Join(fakeWorkspacePath, "apps/test/docker-compose.yml"), "run", "--rm", "--entrypoint=''", "-u", "1000:1000", "app", "some", "command"}, gomock.Any()).
+		Return(0, nil)
+
+	_ = RunAction(&core.GlobalOptions{
+		Cmd: []string{"some", "command"},
+		UID: -1,
+	})
+}
+
 const workspaceConfigWithVars = `
 name: ensi
 variables:

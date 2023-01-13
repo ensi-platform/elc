@@ -278,6 +278,54 @@ func ExecAction(options *core.GlobalOptions) error {
 	return nil
 }
 
+func RunAction(options *core.GlobalOptions) error {
+	ws, err := core.GetWorkspaceConfig(options.WorkspaceName)
+	if err != nil {
+		return err
+	}
+
+	compNames, err := resolveCompNames(ws, options, []string{})
+	if err != nil {
+		return err
+	}
+
+	if len(compNames) > 1 {
+		return errors.New("too many components")
+	}
+
+	comp, err := ws.ComponentByName(compNames[0])
+	if err != nil {
+		return err
+	}
+
+	var hostName string
+
+	if comp.Config.HostedIn != "" {
+		hostName = comp.Config.HostedIn
+	} else {
+		hostName = comp.Name
+	}
+
+	hostComp, err := ws.ComponentByName(hostName)
+	if err != nil {
+		return err
+	}
+
+	if comp.Config.ExecPath != "" {
+		options.WorkingDir, err = ws.Context.RenderString(comp.Config.ExecPath)
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = hostComp.Run(options)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func SetGitHooksAction(scriptsFolder string, elcBinary string) error {
 	folders, err := core.Pc.ReadDir(scriptsFolder)
 	if err != nil {
