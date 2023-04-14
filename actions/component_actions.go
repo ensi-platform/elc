@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/madridianfox/elc/core"
-	"path"
 )
 
 func resolveCompNames(ws *core.Workspace, options *core.GlobalOptions, namesFromArgs []string) ([]string, error) {
@@ -327,27 +326,9 @@ func RunAction(options *core.GlobalOptions) error {
 }
 
 func SetGitHooksAction(scriptsFolder string, elcBinary string) error {
-	folders, err := core.Pc.ReadDir(scriptsFolder)
+	err := core.GenerateHookScripts(elcBinary, scriptsFolder)
 	if err != nil {
 		return err
-	}
-	for _, folder := range folders {
-		if !folder.IsDir() {
-			continue
-		}
-		files, err := core.Pc.ReadDir(path.Join(scriptsFolder, folder.Name()))
-		if err != nil {
-			return err
-		}
-		hookScripts := make([]string, 0)
-		for _, file := range files {
-			hookScripts = append(hookScripts, path.Join(scriptsFolder, folder.Name(), file.Name()))
-		}
-		script := core.GenerateHookScript(hookScripts, elcBinary)
-		err = core.Pc.WriteFile(fmt.Sprintf(".git/hooks/%s", folder.Name()), []byte(script), 0755)
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil
