@@ -67,6 +67,10 @@ func TestServiceStart(t *testing.T) {
 	composeFilePath := path.Join(fakeWorkspacePath, "apps/test/docker-compose.yml")
 
 	mockPc.EXPECT().
+		FileExists(gomock.Any()).
+		Return(false)
+
+	mockPc.EXPECT().
 		ExecToString([]string{"docker", "compose", "-f", composeFilePath, "ps", "--status=running", "-q"}, gomock.Any()).
 		Return(0, "", nil)
 
@@ -100,6 +104,10 @@ services:
 
 func expectStartService(mockPC *core.MockPC, composeFilePath string) {
 	mockPC.EXPECT().
+		FileExists(gomock.Any()).
+		Return(false)
+
+	mockPC.EXPECT().
 		ExecToString([]string{"docker", "compose", "-f", composeFilePath, "ps", "--status=running", "-q"}, gomock.Any()).
 		Return(0, "", nil)
 
@@ -110,6 +118,10 @@ func expectStartService(mockPC *core.MockPC, composeFilePath string) {
 
 func expectStopService(mockPC *core.MockPC, composeFilePath string) {
 	mockPC.EXPECT().
+		FileExists(gomock.Any()).
+		Return(false)
+
+	mockPC.EXPECT().
 		ExecToString([]string{"docker", "compose", "-f", composeFilePath, "ps", "--status=running", "-q"}, gomock.Any()).
 		Return(0, "asdasd", nil)
 
@@ -119,6 +131,10 @@ func expectStopService(mockPC *core.MockPC, composeFilePath string) {
 }
 
 func expectDestroyService(mockPC *core.MockPC, composeFilePath string) {
+	mockPC.EXPECT().
+		FileExists(gomock.Any()).
+		Return(false)
+
 	mockPC.EXPECT().
 		ExecToString([]string{"docker", "compose", "-f", composeFilePath, "ps", "--status=running", "-q"}, gomock.Any()).
 		Return(0, "asdasd", nil)

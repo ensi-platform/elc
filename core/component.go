@@ -158,8 +158,27 @@ func (comp *Component) IsRunning(options *GlobalOptions) (bool, error) {
 	return out != "", nil
 }
 
+func (comp *Component) IsCloned() (bool, error) {
+	svcPath, found := comp.Context.find("SVC_PATH")
+	if !found {
+		return false, errors.New("path of component is not defined.Check workspace.yaml")
+	}
+
+	return Pc.FileExists(svcPath), nil
+}
+
 func (comp *Component) Start(options *GlobalOptions) error {
 	if comp.JustStarted {
+		return nil
+	}
+
+	cloned, err := comp.IsCloned()
+	if err != nil {
+		return err
+	}
+
+	if !cloned {
+		_, _ = Pc.Println("component is not cloned")
 		return nil
 	}
 
@@ -201,6 +220,16 @@ func (comp *Component) startDependencies(params *GlobalOptions) error {
 }
 
 func (comp *Component) Stop(options *GlobalOptions) error {
+	cloned, err := comp.IsCloned()
+	if err != nil {
+		return err
+	}
+
+	if !cloned {
+		_, _ = Pc.Println("component is not cloned")
+		return nil
+	}
+
 	running, err := comp.IsRunning(options)
 	if err != nil {
 		return err
@@ -216,6 +245,16 @@ func (comp *Component) Stop(options *GlobalOptions) error {
 }
 
 func (comp *Component) Destroy(options *GlobalOptions) error {
+	cloned, err := comp.IsCloned()
+	if err != nil {
+		return err
+	}
+
+	if !cloned {
+		_, _ = Pc.Println("component is not cloned")
+		return nil
+	}
+
 	running, err := comp.IsRunning(options)
 	if err != nil {
 		return err
@@ -232,6 +271,17 @@ func (comp *Component) Destroy(options *GlobalOptions) error {
 
 func (comp *Component) Restart(hard bool, options *GlobalOptions) error {
 	var err error
+
+	cloned, err := comp.IsCloned()
+	if err != nil {
+		return err
+	}
+
+	if !cloned {
+		_, _ = Pc.Println("component is not cloned")
+		return nil
+	}
+
 	if hard {
 		err = comp.Destroy(options)
 		if err != nil {
@@ -252,6 +302,16 @@ func (comp *Component) Restart(hard bool, options *GlobalOptions) error {
 }
 
 func (comp *Component) Compose(params *GlobalOptions) (int, error) {
+	cloned, err := comp.IsCloned()
+	if err != nil {
+		return 1, err
+	}
+
+	if !cloned {
+		_, _ = Pc.Println("component is not cloned")
+		return 1, nil
+	}
+
 	code, err := comp.execComposeInteractive(params.Cmd, params)
 	if err != nil {
 		return 0, err
@@ -301,6 +361,16 @@ func (comp *Component) Exec(options *GlobalOptions) (int, error) {
 }
 
 func (comp *Component) Run(options *GlobalOptions) (int, error) {
+	cloned, err := comp.IsCloned()
+	if err != nil {
+		return 1, err
+	}
+
+	if !cloned {
+		_, _ = Pc.Println("component is not cloned")
+		return 1, nil
+	}
+
 	command := []string{"run", "--rm", "--entrypoint=''"}
 	if options.WorkingDir != "" {
 		command = append(command, "-w", options.WorkingDir)
@@ -365,6 +435,16 @@ func (comp *Component) getAfterCloneHook() string {
 }
 
 func (comp *Component) Clone(options *GlobalOptions, noHook bool) error {
+	cloned, err := comp.IsCloned()
+	if err != nil {
+		return err
+	}
+
+	if cloned {
+		_, _ = Pc.Println("component is already cloned")
+		return nil
+	}
+
 	if comp.Config.Repository == "" {
 		return errors.New(fmt.Sprintf("repository of component %s is not defined. Check workspace.yaml", comp.Name))
 	}
