@@ -2,6 +2,8 @@ package core
 
 import (
 	"fmt"
+	"os"
+	"strings"
 )
 
 var hookNames = []string{
@@ -53,35 +55,74 @@ else
 fi
 `
 
-func GenerateHookScripts(elcBinary string, hooksFolder string) error {
-	for _, hookName := range hookNames {
-		scriptContent := fmt.Sprintf(hookScript, elcBinary, hooksFolder, hookName)
-		scriptPath := fmt.Sprintf(".git/hooks/%s", hookName)
+func GenerateHookScripts(options *GlobalOptions, svcPath string, elcBinary string, scriptsFolder string) error {
+	gitPath := fmt.Sprintf("%s/.git", svcPath)
+	if Pc.FileExists(gitPath) == false {
+		_, _ = Pc.Println(fmt.Sprintf("\033[0;33mRepository %s is not exists, skip hooks installation.\033[0m", gitPath))
+		return nil
+	}
 
-		if Pc.FileExists(".git/hooks") == false {
-			err := Pc.CreateDir(".git/hooks")
-			if err != nil {
-				return err
-			}
+	hooksPath := fmt.Sprintf("%s/hooks", gitPath)
+	if Pc.FileExists(hooksPath) == false {
+		if options.Debug {
+			_, _ = Pc.Printf("mkdir %s\n", hooksPath)
 		}
 
-		if Pc.FileExists(scriptPath) == false {
-			err := Pc.CreateFile(scriptPath)
+		if !options.DryRun {
+			err := Pc.CreateDir(hooksPath)
 			if err != nil {
 				return err
 			}
-
-			err = Pc.Chmod(scriptPath, 0775)
-			if err != nil {
-				return err
-			}
-		}
-
-		err := Pc.WriteFile(scriptPath, []byte(scriptContent), 0775)
-		if err != nil {
-			return err
 		}
 	}
+
+	scriptsFolder = strings.ReplaceAll(scriptsFolder, "./", "")
+	scriptsFolder = strings.Trim(scriptsFolder, "/")
+
+	scriptsFolderPath := fmt.Sprintf("%s/%s", svcPath, scriptsFolder)
+	if Pc.FileExists(scriptsFolderPath) == false {
+		_, _ = Pc.Println(fmt.Sprintf("\033[0;33mFolder %s is not exists, skip hooks installation.\033[0m", scriptsFolderPath))
+		return nil
+	}
+
+	for _, hookName := range hookNames {
+		scriptPath := fmt.Sprintf("%s/%s", hooksPath, hookName)
+		scriptContent := fmt.Sprintf(hookScript, elcBinary, scriptsFolder, hookName)
+
+		var filePermissions os.FileMode = 0775
+
+		if Pc.FileExists(scriptPath) == false {
+			if options.Debug {
+				_, _ = Pc.Printf("touch %s\n", scriptPath)
+				_, _ = Pc.Printf("chmod %s %s\n", filePermissions, scriptPath)
+			}
+
+			if !options.DryRun {
+				err := Pc.CreateFile(scriptPath)
+				if err != nil {
+					return err
+				}
+
+				err = Pc.Chmod(scriptPath, filePermissions)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		if options.Debug {
+			_, _ = Pc.Printf("echo \"<script>\" > %s\n", scriptPath)
+		}
+
+		if !options.DryRun {
+			err := Pc.WriteFile(scriptPath, []byte(scriptContent), filePermissions)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	_, _ = Pc.Println(fmt.Sprintf("\033[0;32mFiles in %s updated.\033[0m", hooksPath))
 
 	return nil
 }

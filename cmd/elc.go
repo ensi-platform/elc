@@ -316,10 +316,10 @@ func NewServiceSetHooksCommand(parentCommand *cobra.Command) {
 	var command = &cobra.Command{
 		Use:   "set-hooks [HOOKS_DIR]",
 		Short: "Install hooks from specified folder to .git/hooks",
-		Long:  "Install hooks from specified folder to .git/hooks.\nHOOKS_PATH must contain subdirectories with names as git hooks, eg. 'pre-commit'.\nOne subdirectory can contain one or many scripts with .sh extension.\nEvery script wil be wrapped with 'elc --tag=hook' command.",
+		Long:  "Install hooks from specified folder to .git/hooks.\nHOOKS_PATH must contain subdirectories with names as git hooks, eg. 'pre-commit'.\nOne subdirectory can contain one or many scripts with .sh extension.\nEvery script will be wrapped with 'elc --tag=hook' command.",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return actions.SetGitHooksAction(args[0], os.Args[0])
+			return actions.SetGitHooksAction(&globalOptions, args[0], os.Args[0])
 		},
 	}
 	parentCommand.AddCommand(command)

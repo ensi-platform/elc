@@ -325,10 +325,27 @@ func RunAction(options *core.GlobalOptions) error {
 	return nil
 }
 
-func SetGitHooksAction(scriptsFolder string, elcBinary string) error {
-	err := core.GenerateHookScripts(elcBinary, scriptsFolder)
+func SetGitHooksAction(options *core.GlobalOptions, scriptsFolder string, elcBinary string) error {
+	ws, err := core.GetWorkspaceConfig(options.WorkspaceName)
 	if err != nil {
 		return err
+	}
+
+	compNames, err := resolveCompNames(ws, options, []string{})
+	if err != nil {
+		return err
+	}
+
+	for _, compName := range compNames {
+		comp, err := ws.ComponentByName(compName)
+		if err != nil {
+			return err
+		}
+
+		err = comp.UpdateHooks(options, elcBinary, scriptsFolder)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
