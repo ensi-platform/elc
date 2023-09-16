@@ -22,6 +22,9 @@ type PC interface {
 	FileExists(filepath string) bool
 	ReadFile(filename string) ([]byte, error)
 	ReadDir(dirname string) ([]os.FileInfo, error)
+	CreateFile(filename string) error
+	Chmod(filename string, mode os.FileMode) error
+	CreateDir(path string) error
 	WriteFile(filename string, data []byte, perm os.FileMode) error
 	Printf(format string, a ...interface{}) (n int, err error)
 	Println(a ...interface{}) (n int, err error)
@@ -92,6 +95,24 @@ func (r *RealPC) ReadFile(filename string) ([]byte, error) {
 
 func (r *RealPC) ReadDir(dirname string) ([]os.FileInfo, error) {
 	return ioutil.ReadDir(dirname)
+}
+
+func (r *RealPC) CreateFile(filename string) error {
+	_, err := os.Create(filename)
+
+	return err
+}
+
+func (r *RealPC) Chmod(filename string, mode os.FileMode) error {
+	err := os.Chmod(filename, mode)
+
+	return err
+}
+
+func (r *RealPC) CreateDir(path string) error {
+	err := os.Mkdir(path, 0755)
+
+	return err
 }
 
 func (r *RealPC) WriteFile(filename string, data []byte, perm os.FileMode) error {

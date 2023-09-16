@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/madridianfox/elc/core"
-	"path"
 )
 
 func resolveCompNames(ws *core.Workspace, options *core.GlobalOptions, namesFromArgs []string) ([]string, error) {
@@ -326,25 +325,24 @@ func RunAction(options *core.GlobalOptions) error {
 	return nil
 }
 
-func SetGitHooksAction(scriptsFolder string, elcBinary string) error {
-	folders, err := core.Pc.ReadDir(scriptsFolder)
+func SetGitHooksAction(options *core.GlobalOptions, scriptsFolder string, elcBinary string) error {
+	ws, err := core.GetWorkspaceConfig(options.WorkspaceName)
 	if err != nil {
 		return err
 	}
-	for _, folder := range folders {
-		if !folder.IsDir() {
-			continue
-		}
-		files, err := core.Pc.ReadDir(path.Join(scriptsFolder, folder.Name()))
+
+	compNames, err := resolveCompNames(ws, options, []string{})
+	if err != nil {
+		return err
+	}
+
+	for _, compName := range compNames {
+		comp, err := ws.ComponentByName(compName)
 		if err != nil {
 			return err
 		}
-		hookScripts := make([]string, 0)
-		for _, file := range files {
-			hookScripts = append(hookScripts, path.Join(scriptsFolder, folder.Name(), file.Name()))
-		}
-		script := core.GenerateHookScript(hookScripts, elcBinary)
-		err = core.Pc.WriteFile(fmt.Sprintf(".git/hooks/%s", folder.Name()), []byte(script), 0755)
+
+		err = comp.UpdateHooks(options, elcBinary, scriptsFolder)
 		if err != nil {
 			return err
 		}

@@ -482,3 +482,12 @@ func (comp *Component) Clone(options *GlobalOptions, noHook bool) error {
 		return nil
 	}
 }
+
+func (comp *Component) UpdateHooks(options *GlobalOptions, elcBinary string, scriptsFolder string) error {
+	svcPath, found := comp.Context.find("SVC_PATH")
+	if !found {
+		return errors.New("path of component is not defined.Check workspace.yaml")
+	}
+
+	return GenerateHookScripts(options, svcPath, elcBinary, scriptsFolder)
+}

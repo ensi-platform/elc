@@ -48,6 +48,48 @@ func (mr *MockPCMockRecorder) Args() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Args", reflect.TypeOf((*MockPC)(nil).Args))
 }
 
+// Chmod mocks base method.
+func (m *MockPC) Chmod(filename string, mode os.FileMode) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Chmod", filename, mode)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Chmod indicates an expected call of Chmod.
+func (mr *MockPCMockRecorder) Chmod(filename, mode interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Chmod", reflect.TypeOf((*MockPC)(nil).Chmod), filename, mode)
+}
+
+// CreateDir mocks base method.
+func (m *MockPC) CreateDir(path string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateDir", path)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateDir indicates an expected call of CreateDir.
+func (mr *MockPCMockRecorder) CreateDir(path interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDir", reflect.TypeOf((*MockPC)(nil).CreateDir), path)
+}
+
+// CreateFile mocks base method.
+func (m *MockPC) CreateFile(filename string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateFile", filename)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateFile indicates an expected call of CreateFile.
+func (mr *MockPCMockRecorder) CreateFile(filename interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateFile", reflect.TypeOf((*MockPC)(nil).CreateFile), filename)
+}
+
 // ExecInteractive mocks base method.
 func (m *MockPC) ExecInteractive(command, env []string) (int, error) {
 	m.ctrl.T.Helper()
