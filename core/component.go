@@ -272,16 +272,6 @@ func (comp *Component) Destroy(options *GlobalOptions) error {
 func (comp *Component) Restart(hard bool, options *GlobalOptions) error {
 	var err error
 
-	cloned, err := comp.IsCloned()
-	if err != nil {
-		return err
-	}
-
-	if !cloned {
-		_, _ = Pc.Println("component is not cloned")
-		return nil
-	}
-
 	if hard {
 		err = comp.Destroy(options)
 		if err != nil {

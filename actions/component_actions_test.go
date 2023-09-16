@@ -68,7 +68,7 @@ func TestServiceStart(t *testing.T) {
 
 	mockPc.EXPECT().
 		FileExists(gomock.Any()).
-		Return(false)
+		Return(true)
 
 	mockPc.EXPECT().
 		ExecToString([]string{"docker", "compose", "-f", composeFilePath, "ps", "--status=running", "-q"}, gomock.Any()).
@@ -105,7 +105,7 @@ services:
 func expectStartService(mockPC *core.MockPC, composeFilePath string) {
 	mockPC.EXPECT().
 		FileExists(gomock.Any()).
-		Return(false)
+		Return(true)
 
 	mockPC.EXPECT().
 		ExecToString([]string{"docker", "compose", "-f", composeFilePath, "ps", "--status=running", "-q"}, gomock.Any()).
@@ -119,7 +119,7 @@ func expectStartService(mockPC *core.MockPC, composeFilePath string) {
 func expectStopService(mockPC *core.MockPC, composeFilePath string) {
 	mockPC.EXPECT().
 		FileExists(gomock.Any()).
-		Return(false)
+		Return(true)
 
 	mockPC.EXPECT().
 		ExecToString([]string{"docker", "compose", "-f", composeFilePath, "ps", "--status=running", "-q"}, gomock.Any()).
@@ -133,7 +133,7 @@ func expectStopService(mockPC *core.MockPC, composeFilePath string) {
 func expectDestroyService(mockPC *core.MockPC, composeFilePath string) {
 	mockPC.EXPECT().
 		FileExists(gomock.Any()).
-		Return(false)
+		Return(true)
 
 	mockPC.EXPECT().
 		ExecToString([]string{"docker", "compose", "-f", composeFilePath, "ps", "--status=running", "-q"}, gomock.Any()).
@@ -318,6 +318,10 @@ func TestServiceCompose(t *testing.T) {
 	expectReadWorkspaceConfig(mockPc, fakeWorkspacePath, workspaceConfigWithDeps, "")
 
 	mockPc.EXPECT().
+		FileExists(gomock.Any()).
+		Return(true)
+
+	mockPc.EXPECT().
 		ExecInteractive([]string{"docker", "compose", "-f", path.Join(fakeWorkspacePath, "apps/test/docker-compose.yml"), "some", "command"}, gomock.Any()).
 		Return(0, nil)
 
@@ -328,6 +332,10 @@ func TestServiceComposeByName(t *testing.T) {
 	mockPc := setupMockPc(t)
 	expectReadHomeConfig(mockPc)
 	expectReadWorkspaceConfig(mockPc, fakeWorkspacePath, workspaceConfigWithDeps, "")
+
+	mockPc.EXPECT().
+		FileExists(gomock.Any()).
+		Return(true)
 
 	mockPc.EXPECT().
 		ExecInteractive([]string{"docker", "compose", "-f", path.Join(fakeWorkspacePath, "apps/dep1/docker-compose.yml"), "some", "command"}, gomock.Any()).
@@ -399,6 +407,10 @@ func TestServiceRun(t *testing.T) {
 	mockPc := setupMockPc(t)
 	expectReadHomeConfig(mockPc)
 	expectReadWorkspaceConfig(mockPc, fakeWorkspacePath, workspaceConfigWithDeps, "")
+
+	mockPc.EXPECT().
+		FileExists(gomock.Any()).
+		Return(true)
 
 	mockPc.EXPECT().
 		IsTerminal().

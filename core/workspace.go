@@ -132,7 +132,7 @@ func (ws *Workspace) ComponentByPath() (*Component, error) {
 	for _, comp := range ws.Components {
 		compPath, found := comp.Context.find("SVC_PATH")
 		if found {
-			if strings.HasPrefix(compPath, ws.Cwd) {
+			if strings.HasPrefix(compPath+"/", ws.Cwd+"/") {
 				return comp, nil
 			}
 		}
@@ -144,7 +144,7 @@ func (ws *Workspace) ComponentNameByPath() (string, error) {
 	for name, comp := range ws.Components {
 		compPath, found := comp.Context.find("SVC_PATH")
 		if found {
-			if strings.HasPrefix(compPath, ws.Cwd) {
+			if strings.HasPrefix(compPath+"/", ws.Cwd+"/") {
 				return name, nil
 			}
 		}
