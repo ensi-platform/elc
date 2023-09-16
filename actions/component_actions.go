@@ -55,6 +55,7 @@ func StartServiceAction(options *core.GlobalOptions, svcNames []string) error {
 	}
 
 	for _, compName := range compNames {
+		fmt.Printf("# component: %s\n", compName)
 		comp, err := ws.ComponentByName(compName)
 		if err != nil {
 			return err
@@ -62,7 +63,7 @@ func StartServiceAction(options *core.GlobalOptions, svcNames []string) error {
 
 		err = comp.Start(options)
 		if err != nil {
-			return err
+			fmt.Printf("Error: %s\n", err)
 		}
 	}
 
@@ -87,6 +88,7 @@ func StopServiceAction(stopAll bool, svcNames []string, destroy bool, options *c
 	}
 
 	for _, compName := range compNames {
+		fmt.Printf("# component: %s\n", compName)
 		comp, err := ws.ComponentByName(compName)
 		if err != nil {
 			return err
@@ -97,7 +99,7 @@ func StopServiceAction(stopAll bool, svcNames []string, destroy bool, options *c
 			err = comp.Stop(options)
 		}
 		if err != nil {
-			return err
+			fmt.Printf("Error: %s\n", err)
 		}
 	}
 
@@ -116,6 +118,7 @@ func RestartServiceAction(hardRestart bool, svcNames []string, options *core.Glo
 	}
 
 	for _, compName := range compNames {
+		fmt.Printf("# component: %s\n", compName)
 		comp, err := ws.ComponentByName(compName)
 		if err != nil {
 			return err
@@ -123,7 +126,7 @@ func RestartServiceAction(hardRestart bool, svcNames []string, options *core.Glo
 
 		err = comp.Restart(hardRestart, options)
 		if err != nil {
-			return err
+			fmt.Printf("Error: %s\n", err)
 		}
 	}
 
@@ -337,6 +340,7 @@ func SetGitHooksAction(options *core.GlobalOptions, scriptsFolder string, elcBin
 	}
 
 	for _, compName := range compNames {
+		fmt.Printf("# component: %s\n", compName)
 		comp, err := ws.ComponentByName(compName)
 		if err != nil {
 			return err
@@ -344,7 +348,7 @@ func SetGitHooksAction(options *core.GlobalOptions, scriptsFolder string, elcBin
 
 		err = comp.UpdateHooks(options, elcBinary, scriptsFolder)
 		if err != nil {
-			return err
+			fmt.Printf("Error: %s\n", err)
 		}
 	}
 
@@ -363,6 +367,7 @@ func CloneComponentAction(options *core.GlobalOptions, svcNames []string, noHook
 	}
 
 	for _, compName := range compNames {
+		fmt.Printf("# component: %s\n", compName)
 		comp, err := ws.ComponentByName(compName)
 		if err != nil {
 			return err
@@ -370,7 +375,7 @@ func CloneComponentAction(options *core.GlobalOptions, svcNames []string, noHook
 
 		err = comp.Clone(options, noHook)
 		if err != nil {
-			return err
+			fmt.Printf("Error: %s\n", err)
 		}
 	}
 
