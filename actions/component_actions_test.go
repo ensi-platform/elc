@@ -1,8 +1,8 @@
 package actions
 
 import (
+	"github.com/ensi-platform/elc/core"
 	"github.com/golang/mock/gomock"
-	"github.com/madridianfox/elc/core"
 	"path"
 	"testing"
 )

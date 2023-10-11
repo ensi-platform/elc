@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"github.com/madridianfox/elc/actions"
-	"github.com/madridianfox/elc/core"
+	"github.com/ensi-platform/elc/actions"
+	"github.com/ensi-platform/elc/core"
 	"github.com/spf13/cobra"
 	"os"
 )

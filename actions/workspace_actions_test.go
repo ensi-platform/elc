@@ -1,7 +1,7 @@
 package actions
 
 import (
-	"github.com/madridianfox/elc/core"
+	"github.com/ensi-platform/elc/core"
 	"os"
 	"testing"
 )

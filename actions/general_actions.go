@@ -2,7 +2,7 @@ package actions
 
 import (
 	"fmt"
-	"github.com/madridianfox/elc/core"
+	"github.com/ensi-platform/elc/core"
 )
 
 func UpdateBinaryAction(version string) error {
