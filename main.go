@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/madridianfox/elc/cmd"
+	"github.com/ensi-platform/elc/cmd"
 	"os"
 )
 
