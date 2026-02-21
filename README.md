@@ -1,6 +1,6 @@
 #  ELC - Ensi Local Ctl
 
-[![Test](https://github.com/ensi-platform/elc/actions/workflows/test.yml/badge.svg)](https://github.com/ensi-platform/elc/actions/workflows/test.yml)
+[![Test](https://github.com/ensi-platform/elc/actions/workflows/test.yml/badge.svg?branch=master)](https://github.com/ensi-platform/elc/actions/workflows/test.yml)
 
 ELC - инструмент для развёртывания микросервисов на машине разработчика, целью которого является запуск всех необходимых для разработки
 программ в контейнере.  
