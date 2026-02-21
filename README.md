@@ -11,10 +11,11 @@ ELC - инструмент для развёртывания микросерв�
 - сокращает количество и размер команд, необходимых для запуска проекта
 - позволяет запускать .git хуки в контейнере
 
-## Установка (Linux, WSL)
+## Установка (Linux, WSL, Mac)
 
-```bash
-curl -sSL https://raw.githubusercontent.com/ensi-platform/elc/master/get.sh | sudo bash
+```shell
+brew tap ensi-platform/elc
+brew install elc
 ```
 
 ## Сборка из исходников
