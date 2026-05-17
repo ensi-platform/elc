@@ -102,6 +102,20 @@ services:
       dep3: []
 `
 
+const workspaceConfigWithSharedDeps = `name: ensi
+services:
+  dep:
+    path: "${WORKSPACE_PATH}/apps/dep"
+  api:
+    path: "${WORKSPACE_PATH}/apps/api"
+    dependencies:
+      dep: [default]
+  worker:
+    path: "${WORKSPACE_PATH}/apps/worker"
+    dependencies:
+      dep: [default]
+`
+
 func expectStartService(mockPC *core.MockPC, composeFilePath string) {
 	mockPC.EXPECT().
 		FileExists(gomock.Any()).
@@ -190,6 +204,18 @@ func TestServiceStartByNames(t *testing.T) {
 	expectStartService(mockPc, path.Join(fakeWorkspacePath, "apps/dep3/docker-compose.yml"))
 
 	_ = StartServiceAction(&core.GlobalOptions{}, []string{"dep1", "dep3"})
+}
+
+func TestServiceStartByNamesSharedDependencyStartsOnce(t *testing.T) {
+	mockPc := setupMockPc(t)
+	expectReadHomeConfig(mockPc)
+	expectReadWorkspaceConfig(mockPc, fakeWorkspacePath, workspaceConfigWithSharedDeps, "")
+
+	expectStartService(mockPc, path.Join(fakeWorkspacePath, "apps/dep/docker-compose.yml"))
+	expectStartService(mockPc, path.Join(fakeWorkspacePath, "apps/api/docker-compose.yml"))
+	expectStartService(mockPc, path.Join(fakeWorkspacePath, "apps/worker/docker-compose.yml"))
+
+	_ = StartServiceAction(&core.GlobalOptions{}, []string{"api", "worker"})
 }
 
 func TestServiceStartByAlias(t *testing.T) {

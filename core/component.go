@@ -172,6 +172,8 @@ func (comp *Component) Start(options *GlobalOptions) error {
 		return nil
 	}
 
+	comp.JustStarted = true
+
 	cloned, err := comp.IsCloned()
 	if err != nil {
 		return err

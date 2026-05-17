@@ -1,18 +1,18 @@
 # Project State
 
 **Updated:** 2026-05-17
-**Status:** Ready to discuss Phase 2
+**Status:** Phase 2 executed and verified locally
 **Milestone:** v1.0 Technical Refresh
 **Current Phase:** 2
 **Current Phase Name:** Orchestration Stabilization and Verification
-**Current Plan:** Not started
+**Current Plan:** Phase complete
 
 ## Project Reference
 
 See: `.planning/PROJECT.md` (updated 2026-05-17)
 
 **Core value:** Разработчик должен иметь предсказуемый и совместимый CLI для управления локальным workspace на Linux/macOS без ручной возни с запуском сервисов и контейнерных команд.
-**Current focus:** Phase 2 - Orchestration Stabilization and Verification
+**Current focus:** Milestone ready for closeout
 
 ## Current Position
 
@@ -20,7 +20,9 @@ See: `.planning/PROJECT.md` (updated 2026-05-17)
 - Requirements defined
 - Research completed
 - Phase 1 executed and verified locally
-- Next action: `$gsd-discuss-phase 2`
+- Phase 2 discussion completed
+- Phase 2 plan `02-01` executed successfully
+- Next action: `$gsd-complete-milestone`
 
 ## Accumulated Context
 
@@ -35,6 +37,10 @@ See: `.planning/PROJECT.md` (updated 2026-05-17)
 - Built-in self-update должен быть удален полностью, а `update_command` в `~/.elc.yaml` остается harmless legacy field
 - YAML/tooling-модернизация в Phase 1 ограничена минимально необходимым объемом
 - Phase 1 completed with Go 1.26 baseline, refreshed direct dependencies, YAML v3 compatibility, and removed updater command path
+- Phase 2 will fix only redundant dependency startup guarding around `JustStarted` on supported acyclic graphs
+- `restart` semantics are intentionally kept simple: after stop/destroy the service restarts without propagating extra CLI options
+- Phase 2 verification should stay minimal and adjacent fixes are allowed only when they are critical for acceptance criteria
+- Phase 2 completed with an effective `JustStarted` guard and targeted regression coverage for shared dependencies
 
 ### Blockers/Concerns
 
