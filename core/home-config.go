@@ -3,8 +3,9 @@ package core
 import (
 	"errors"
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"strings"
+
+	yaml "go.yaml.in/yaml/v3"
 )
 
 type HomeConfigItem struct {
@@ -16,11 +17,9 @@ type HomeConfigItem struct {
 type HomeConfig struct {
 	Path             string           `yaml:"-"`
 	CurrentWorkspace string           `yaml:"current_workspace"`
-	UpdateCommand    string           `yaml:"update_command"`
+	UpdateCommand    string           `yaml:"update_command,omitempty"`
 	Workspaces       []HomeConfigItem `yaml:"workspaces"`
 }
-
-const DefaultUpdateCommand = "curl -sSL https://raw.githubusercontent.com/ensi-platform/elc/master/get.sh | sudo -E bash"
 
 func LoadHomeConfig(configPath string) (*HomeConfig, error) {
 	yamlFile, err := Pc.ReadFile(configPath)
@@ -55,7 +54,7 @@ func CheckHomeConfigIsEmpty(configPath string) error {
 	if Pc.FileExists(configPath) {
 		return nil
 	}
-	return SaveHomeConfig(&HomeConfig{Path: configPath, UpdateCommand: DefaultUpdateCommand})
+	return SaveHomeConfig(&HomeConfig{Path: configPath})
 }
 
 func (hc *HomeConfig) AddWorkspace(name string, path string) error {

@@ -1,14 +1,12 @@
 package core
 
-import (
-	"gopkg.in/yaml.v2"
-)
+import yaml "go.yaml.in/yaml/v3"
 
 type WorkspaceConfig struct {
 	Name          string                     `yaml:"name"`
 	ElcMinVersion string                     `yaml:"elc_min_version"`
 	Components    map[string]ComponentConfig `yaml:"components"`
-	Variables     yaml.MapSlice              `yaml:"variables"`
+	Variables     OrderedVars                `yaml:"variables"`
 
 	// deprecated
 	Aliases map[string]string `yaml:"aliases"`

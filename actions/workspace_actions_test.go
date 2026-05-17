@@ -32,15 +32,15 @@ func TestWorkspaceAdd(t *testing.T) {
 	const homeConfigForAdd = `current_workspace: project1
 update_command: update
 workspaces:
-- name: project1
-  path: /tmp/workspaces/project1
-  root_path: ""
-- name: project2
-  path: /tmp/workspaces/project2
-  root_path: ""
-- name: project3
-  path: /tmp/workspaces/project3
-  root_path: ""
+    - name: project1
+      path: /tmp/workspaces/project1
+      root_path: ""
+    - name: project2
+      path: /tmp/workspaces/project2
+      root_path: ""
+    - name: project3
+      path: /tmp/workspaces/project3
+      root_path: ""
 `
 
 	mockPc.EXPECT().WriteFile(fakeHomeConfigPath, []byte(homeConfigForAdd), os.FileMode(0644))
@@ -56,12 +56,12 @@ func TestWorkspaceSelect(t *testing.T) {
 	const homeConfigForSelect = `current_workspace: project2
 update_command: update
 workspaces:
-- name: project1
-  path: /tmp/workspaces/project1
-  root_path: ""
-- name: project2
-  path: /tmp/workspaces/project2
-  root_path: ""
+    - name: project1
+      path: /tmp/workspaces/project1
+      root_path: ""
+    - name: project2
+      path: /tmp/workspaces/project2
+      root_path: ""
 `
 
 	mockPc.EXPECT().WriteFile(fakeHomeConfigPath, []byte(homeConfigForSelect), os.FileMode(0644))

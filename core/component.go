@@ -57,11 +57,11 @@ func (comp *Component) init() error {
 		}
 		ctx = ctx.add("COMPOSE_FILE", composeFile)
 		for _, pair := range tpl.Variables {
-			value, err := ctx.RenderString(pair.Value.(string))
+			value, err := ctx.RenderString(pair.Value)
 			if err != nil {
 				return err
 			}
-			ctx = ctx.add(pair.Key.(string), value)
+			ctx = ctx.add(pair.Key, value)
 		}
 	}
 
@@ -82,11 +82,11 @@ func (comp *Component) init() error {
 	}
 
 	for _, pair := range comp.Config.Variables {
-		value, err := ctx.RenderString(pair.Value.(string))
+		value, err := ctx.RenderString(pair.Value)
 		if err != nil {
 			return err
 		}
-		ctx = ctx.add(pair.Key.(string), value)
+		ctx = ctx.add(pair.Key, value)
 	}
 
 	comp.Context = &ctx
