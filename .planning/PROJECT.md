@@ -4,7 +4,7 @@
 
 ELC - это CLI-инструмент для локальной разработки, который помогает поднимать и обслуживать workspace из нескольких сервисов и модулей через единое описание в `workspace.yaml`. Он управляет запуском контейнеров, выполнением команд внутри сервисов, регистрацией и выбором workspace, а также генерацией git-хуков для запуска в контейнерной среде.
 
-Текущий milestone не добавляет новые пользовательские возможности. Его задача - технически оздоровить существующий продукт: обновить стек до последних мажорных версий, удалить встроенный self-update в пользу Homebrew и исправить уже известные дефекты без поломки CLI, API и формата конфигов.
+Milestone `v1.0 Technical Refresh` уже завершен: проект переведен на актуальный Go/tooling baseline, встроенный self-update удален в пользу Homebrew, а orchestration-ошибка вокруг `JustStarted` исправлена без поломки CLI и форматов конфигов. Следующий milestone должен определить, что делать дальше: hardening, coverage expansion, security cleanup или новый продуктовый scope.
 
 ## Core Value
 
@@ -19,14 +19,16 @@ ELC - это CLI-инструмент для локальной разработ
 - ✓ CLI умеет выполнять команды внутри контейнеров сервисов и модулей, включая работу из текущей директории или с явным выбором workspace/component — existing
 - ✓ CLI поддерживает конфигурацию компонентов, шаблонов, переменных, зависимостей и режимов запуска через YAML-конфиги workspace — existing
 - ✓ CLI умеет генерировать и использовать git-хуки, запускаемые в контейнерной среде сервиса — existing
+- ✓ Проект обновлен до Go `1.26` и актуальных major versions ключевых зависимостей — v1.0
+- ✓ Built-in self-update удален, а Homebrew закреплен как единственный поддерживаемый install/upgrade path — v1.0
+- ✓ `JustStarted` исправлен так, чтобы shared dependencies не переобрабатывались повторно в одном command flow — v1.0
+- ✓ Обратная совместимость CLI/config сохранена, а `go build ./...` и `go test ./...` проходят на обновленном стеке — v1.0
 
 ### Active
 
-- [ ] Обновить Go toolchain и ключевые зависимости до последних мажорных версий, совместимых с Linux/macOS уровня 2022 года и выше
-- [ ] Удалить встроенный механизм self-update и перевести проект на Homebrew как единственный поддерживаемый способ установки и обновления
-- [ ] Исправить использование флага `JustStarted`, чтобы защита от повторного запуска зависимостей и циклических графов реально работала
-- [ ] Сохранить обратную совместимость CLI, API поведения и формата конфигурационных файлов при обновлении стека
-- [ ] Довести проект до состояния, в котором он стабильно собирается и проходит существующий тестовый набор на обновленном стеке
+- [ ] Определить следующий milestone после технического refresh: hardening, coverage expansion, security cleanup или новые продуктовые задачи
+- [ ] Решить, нужны ли explicit cycle detection и более широкая orchestration hardening-программа
+- [ ] Приоритизировать оставшиеся concerns из `.planning/codebase/CONCERNS.md` и deferred requirements из milestone archive
 
 ### Out of Scope
 
@@ -34,16 +36,29 @@ ELC - это CLI-инструмент для локальной разработ
 - Крупный redesign архитектуры — можно делать точечные исправления, но не переписывать систему целиком
 - Доведение test coverage до идеала — нужны достаточные тесты для безопасного обновления, но не отдельная программа тотального покрытия
 
+## Current State
+
+- **Shipped milestone:** `v1.0 Technical Refresh` on `2026-05-17`
+- **Current baseline:** Go `1.26`, refreshed direct dependencies, YAML v3 compatibility layer, Homebrew-only distribution model
+- **Runtime status:** `JustStarted` bug fixed for supported acyclic graphs; build and tests pass locally on the refreshed stack
+- **Known deferred areas:** explicit cycle detection, broader runtime/CLI coverage, remaining hardening and audit concerns outside v1.0 scope
+
+## Next Milestone Goals
+
+- Выбрать следующий фокус: hardening / coverage / security cleanup / product work
+- Сформировать новый `REQUIREMENTS.md` через `$gsd-new-milestone`
+- Решить, какие deferred items из `v1.0` становятся активными, а какие остаются backlog
+
 ## Context
 
 - Кодовая база brownfield: основной runtime написан на Go, CLI собран вокруг Cobra, конфигурация workspace хранится в YAML, а orchestration опирается на `docker compose`, `git` и локальное shell-окружение
 - Анализ codebase уже выполнен и сохранен в `.planning/codebase/`
-- В `STACK.md` зафиксирован устаревший базовый стек: Go 1.19, `cobra` v1.5.0, `gopkg.in/yaml.v2`, старые IO API и устаревшие транзитивные зависимости
-- В `CONCERNS.md` уже выявлены конкретные проблемы для этого milestone:
-  - встроенный update-path завязан на shell-команду и удаленный скрипт, что теперь не нужно после перехода на Homebrew
-  - флаг `JustStarted` существует, но фактически не используется, из-за чего защита от повторного старта зависимостей не работает
-  - есть и другие архитектурные/безопасностные замечания, но в текущий milestone входят только очевидные и непосредственно релевантные исправления
-- README уже описывает установку через Homebrew как основной путь для Linux/WSL/macOS, поэтому удаление self-update должно согласовать фактическое поведение продукта с текущей моделью поставки
+- В `STACK.md` зафиксирован исходный устаревший baseline, от которого проект уже ушел в `v1.0`: Go `1.26`, обновленные direct deps, YAML v3 compatibility layer
+- В `CONCERNS.md` остаются deferred-проблемы после `v1.0`:
+  - explicit cycle detection для dependency graphs
+  - более широкое runtime / CLI wiring coverage
+  - дополнительные архитектурные и security hardening-задачи вне scope технического refresh milestone
+- README и runtime behavior теперь согласованы с Homebrew как единственным поддерживаемым путем установки и обновления
 
 ## Constraints
 
@@ -57,10 +72,10 @@ ELC - это CLI-инструмент для локальной разработ
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Обновлять стек до последних мажорных версий | Цель milestone - привести проект к актуальному состоянию, а не ограничиться минорными апдейтами | — Pending |
-| Полностью удалить встроенный self-update | Установка и обновление теперь идут через Homebrew; дублирующий updater больше не нужен и создает лишний риск | — Pending |
-| Исправлять `JustStarted` без изменения публичного интерфейса | Нужно устранить очевидный баг в orchestration-логике, сохранив поведение CLI и формат конфигов | — Pending |
-| Не включать в milestone новые фичи и крупный redesign | Иначе техническое обновление расползется по scope и потеряет прогнозируемость | — Pending |
+| Обновлять стек до последних мажорных версий | Цель milestone - привести проект к актуальному состоянию, а не ограничиться минорными апдейтами | ✓ Shipped in v1.0 |
+| Полностью удалить встроенный self-update | Установка и обновление теперь идут через Homebrew; дублирующий updater больше не нужен и создает лишний риск | ✓ Shipped in v1.0 |
+| Исправлять `JustStarted` без изменения публичного интерфейса | Нужно устранить очевидный баг в orchestration-логике, сохранив поведение CLI и формат конфигов | ✓ Shipped in v1.0 |
+| Не включать в milestone новые фичи и крупный redesign | Иначе техническое обновление расползется по scope и потеряет прогнозируемость | ✓ Confirmed by v1.0 scope |
 
 ## Evolution
 
@@ -80,4 +95,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-17 after initialization*
+*Last updated: 2026-05-17 after v1.0 milestone*
