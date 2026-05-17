@@ -1,7 +1,5 @@
 package core
 
-import "gopkg.in/yaml.v2"
-
 type ModeList []string
 
 func (s ModeList) contains(v string) bool {
@@ -24,7 +22,7 @@ type ComponentConfig struct {
 	IsTemplate     bool                `yaml:"is_template"`
 	Path           string              `yaml:"path"`
 	Replace        bool                `yaml:"replace"`
-	Variables      yaml.MapSlice       `yaml:"variables"`
+	Variables      OrderedVars         `yaml:"variables"`
 	Repository     string              `yaml:"repository"`
 	Tags           []string            `yaml:"tags"`
 	AfterCloneHook string              `yaml:"after_clone_hook"`

@@ -106,11 +106,11 @@ func (ws *Workspace) createContext() (*Context, error) {
 	ctx = ctx.add("WORKSPACE_NAME", ws.Config.Name)
 
 	for _, pair := range ws.Config.Variables {
-		value, err := substVars(pair.Value.(string), &ctx)
+		value, err := substVars(pair.Value, &ctx)
 		if err != nil {
 			return nil, err
 		}
-		ctx = ctx.add(pair.Key.(string), value)
+		ctx = ctx.add(pair.Key, value)
 	}
 
 	return &ctx, nil

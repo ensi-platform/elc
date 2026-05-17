@@ -3,7 +3,6 @@ package core
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/user"
@@ -90,11 +89,25 @@ func (r *RealPC) FileExists(filepath string) bool {
 }
 
 func (r *RealPC) ReadFile(filename string) ([]byte, error) {
-	return ioutil.ReadFile(filename)
+	return os.ReadFile(filename)
 }
 
 func (r *RealPC) ReadDir(dirname string) ([]os.FileInfo, error) {
-	return ioutil.ReadDir(dirname)
+	entries, err := os.ReadDir(dirname)
+	if err != nil {
+		return nil, err
+	}
+
+	files := make([]os.FileInfo, 0, len(entries))
+	for _, entry := range entries {
+		info, err := entry.Info()
+		if err != nil {
+			return nil, err
+		}
+		files = append(files, info)
+	}
+
+	return files, nil
 }
 
 func (r *RealPC) CreateFile(filename string) error {
@@ -116,7 +129,7 @@ func (r *RealPC) CreateDir(path string) error {
 }
 
 func (r *RealPC) WriteFile(filename string, data []byte, perm os.FileMode) error {
-	return ioutil.WriteFile(filename, data, perm)
+	return os.WriteFile(filename, data, perm)
 }
 
 func (r *RealPC) Printf(format string, a ...interface{}) (n int, err error) {

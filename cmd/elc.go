@@ -63,8 +63,6 @@ func InitCobra() *cobra.Command {
 	NewServiceExecCommand(rootCmd)
 	NewServiceRunCommand(rootCmd)
 	NewServiceSetHooksCommand(rootCmd)
-	NewUpdateCommand(rootCmd)
-	NewFixUpdateCommand(rootCmd)
 	NewServiceCloneCommand(rootCmd)
 	NewServiceListCommand(rootCmd)
 
@@ -320,33 +318,6 @@ func NewServiceSetHooksCommand(parentCommand *cobra.Command) {
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return actions.SetGitHooksAction(&globalOptions, args[0], os.Args[0])
-		},
-	}
-	parentCommand.AddCommand(command)
-}
-
-func NewUpdateCommand(parentCommand *cobra.Command) {
-	var version string
-	var command = &cobra.Command{
-		Use:   "update",
-		Short: "Update elc binary",
-		Long:  "Update elc binary.\nDownload new version of ELC, place it to /opt/elc/ and update symlink at /usr/local/bin.",
-		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return actions.UpdateBinaryAction(version)
-		},
-	}
-	command.Flags().StringVar(&version, "version", "", "desired version of elc")
-	parentCommand.AddCommand(command)
-}
-
-func NewFixUpdateCommand(parentCommand *cobra.Command) {
-	var command = &cobra.Command{
-		Use:   "fix-update-command",
-		Short: "Set actual update command to ~/.elc.yaml",
-		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return actions.FixUpdateBinaryCommandAction()
 		},
 	}
 	parentCommand.AddCommand(command)

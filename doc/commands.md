@@ -255,22 +255,6 @@ elc vars
 elc vars other-service
 ```
 
-## update
-```
-update [OPTIONS]
-```
-Обновить elc или переключить на конкретную версию.  
-По умолчанию скачивает самую свежую версию elc и переключается на неё.
-
-Опции:
-* `--version=VERSION` - версия, на которую нужно переключиться
-
-Примеры:
-```
-elc update
-elc update --version=v0.1.8
-```
-
 ## wrap
 ```
 wrap [OPTIONS] <SHELL-COMMAND>
@@ -285,12 +269,3 @@ wrap [OPTIONS] <SHELL-COMMAND>
 elc wrap ./prepare-service.sh
 elc wrap --component=other-service ./prepare-service.sh
 ```
-
-## fix-update-command
-```
-elc fix-update-command
-```
-Актуализировать shell-команду обновления прописанную в ~/.elc.yaml.  
-Shell-команда обновления сохраняется в ~/.elc.yaml в момент создания этого файла при первом запуске elc.  
-Если по какой-то причине эта команда изменися, например из-за переименования репозитория, то ~/.elc.yaml нужно редактировать.  
-Чтобы не делать это вручную, существует команда `elc fix-update-command`. 
