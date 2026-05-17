@@ -4,3 +4,43 @@ dev
 go.sum
 example/env.yaml
 *.out
+
+# GSD planning artifacts
+.planning/**
+
+# Keep shared project memory and roadmap
+!.planning/
+!.planning/PROJECT.md
+!.planning/REQUIREMENTS.md
+!.planning/ROADMAP.md
+!.planning/STATE.md
+!.planning/MILESTONES.md
+
+# Keep phase history for planned work
+!.planning/phases/
+!.planning/phases/**/
+!.planning/phases/**/*-CONTEXT.md
+!.planning/phases/**/*-PLAN.md
+!.planning/phases/**/*-SUMMARY.md
+!.planning/phases/**/*-VERIFICATION.md
+!.planning/phases/**/*-UAT.md
+!.planning/phases/**/*-SPEC.md
+!.planning/phases/**/*-AI-SPEC.md
+!.planning/phases/**/*-UI-SPEC.md
+
+# Optional: keep milestone archives
+!.planning/milestones/
+!.planning/milestones/**
+
+# Ignore volatile / local-only artifacts
+.planning/codebase/
+.planning/research/
+.planning/quick/
+.planning/debug/
+.planning/spikes/
+.planning/sketches/
+.planning/tmp/
+.planning/logs/
+.planning/**/.continue-here.md
+.planning/**/*-DISCUSS-CHECKPOINT.json
+.planning/HANDOFF.json
