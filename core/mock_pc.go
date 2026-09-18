@@ -76,6 +76,20 @@ func (mr *MockPCMockRecorder) CreateDir(path interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDir", reflect.TypeOf((*MockPC)(nil).CreateDir), path)
 }
 
+// MkdirAll mocks base method.
+func (m *MockPC) MkdirAll(path string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MkdirAll", path)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MkdirAll indicates an expected call of MkdirAll.
+func (mr *MockPCMockRecorder) MkdirAll(path interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MkdirAll", reflect.TypeOf((*MockPC)(nil).MkdirAll), path)
+}
+
 // CreateFile mocks base method.
 func (m *MockPC) CreateFile(filename string) error {
 	m.ctrl.T.Helper()
@@ -103,6 +117,21 @@ func (m *MockPC) ExecInteractive(command, env []string) (int, error) {
 func (mr *MockPCMockRecorder) ExecInteractive(command, env interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecInteractive", reflect.TypeOf((*MockPC)(nil).ExecInteractive), command, env)
+}
+
+// ExecInteractiveInDir mocks base method.
+func (m *MockPC) ExecInteractiveInDir(command, env []string, dir string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ExecInteractiveInDir", command, env, dir)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ExecInteractiveInDir indicates an expected call of ExecInteractiveInDir.
+func (mr *MockPCMockRecorder) ExecInteractiveInDir(command, env, dir interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecInteractiveInDir", reflect.TypeOf((*MockPC)(nil).ExecInteractiveInDir), command, env, dir)
 }
 
 // ExecToString mocks base method.

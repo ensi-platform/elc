@@ -406,6 +406,23 @@ func (comp *Component) Wrap(command []string, options *GlobalOptions) (int, erro
 	return code, nil
 }
 
+func (comp *Component) Launch(command []string, options *GlobalOptions) (int, error) {
+	svcPath, found := comp.Context.find("SVC_PATH")
+	if !found || svcPath == "" {
+		return 0, errors.New("path of component is not defined.Check workspace.yaml")
+	}
+
+	if options.Debug {
+		_, _ = Pc.Printf(">> (cd %s) %s\n", svcPath, strings.Join(command, " "))
+	}
+
+	if options.DryRun {
+		return 0, nil
+	}
+
+	return Pc.ExecInteractiveInDir(command, comp.Context.renderMapToEnv(), svcPath)
+}
+
 func (comp *Component) DumpVars() error {
 	for _, line := range comp.Context.renderMapToEnv() {
 		_, _ = Pc.Println(line)
@@ -415,14 +432,12 @@ func (comp *Component) DumpVars() error {
 }
 
 func (comp *Component) getAfterCloneHook() string {
-	if comp.Config.AfterCloneHook != "" {
-		return comp.Config.AfterCloneHook
+	if hook := comp.Config.ResolvedAfterCloneHook(); hook != "" {
+		return hook
 	}
-
 	if comp.Template != nil {
-		return comp.Template.AfterCloneHook
+		return comp.Template.ResolvedAfterCloneHook()
 	}
-
 	return ""
 }
 

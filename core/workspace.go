@@ -17,6 +17,11 @@ type Workspace struct {
 	WillStart  []string
 	Context    *Context
 	Components map[string]*Component
+
+	cwdResolved bool
+	cwdCompName string
+	cwdBranch   string
+	cwdMatchErr error
 }
 
 func NewWorkspace(wsPath string, cwd string) *Workspace {
@@ -113,6 +118,14 @@ func (ws *Workspace) createContext() (*Context, error) {
 		ctx = ctx.add(pair.Key, value)
 	}
 
+	if _, found := ctx.find("WORKTREES_PATH"); !found {
+		value, err := substVars("${WORKSPACE_PATH}/worktrees", &ctx)
+		if err != nil {
+			return nil, err
+		}
+		ctx = ctx.add("WORKTREES_PATH", value)
+	}
+
 	return &ctx, nil
 }
 
@@ -129,27 +142,86 @@ func (ws *Workspace) ComponentByName(name string) (*Component, error) {
 }
 
 func (ws *Workspace) ComponentByPath() (*Component, error) {
-	for _, comp := range ws.Components {
-		compPath, found := comp.Context.find("SVC_PATH")
-		if found {
-			if strings.HasPrefix(compPath+"/", ws.Cwd+"/") {
-				return comp, nil
-			}
-		}
+	name, err := ws.ComponentNameByPath()
+	if err != nil {
+		return nil, err
 	}
-	return nil, errors.New(fmt.Sprintf("you are not in component folder"))
+	return ws.ComponentByName(name)
 }
 
 func (ws *Workspace) ComponentNameByPath() (string, error) {
+	name, _, err := ws.MatchCwd()
+	return name, err
+}
+
+func (ws *Workspace) MatchCwd() (string, string, error) {
+	if ws.cwdResolved {
+		return ws.cwdCompName, ws.cwdBranch, ws.cwdMatchErr
+	}
+	ws.cwdResolved = true
+
+	if name, branch, ok := ws.detectWorktreeFromCwd(); ok {
+		ws.cwdCompName = name
+		ws.cwdBranch = branch
+		return name, branch, nil
+	}
+
+	var bestName string
+	bestLen := -1
 	for name, comp := range ws.Components {
 		compPath, found := comp.Context.find("SVC_PATH")
-		if found {
-			if strings.HasPrefix(compPath+"/", ws.Cwd+"/") {
-				return name, nil
-			}
+		if !found || compPath == "" {
+			continue
+		}
+		if isInside(ws.Cwd, compPath) && len(compPath) > bestLen {
+			bestLen = len(compPath)
+			bestName = name
 		}
 	}
-	return "", errors.New(fmt.Sprintf("you are not in component folder"))
+	if bestName == "" {
+		ws.cwdMatchErr = errors.New("you are not in component folder")
+		return "", "", ws.cwdMatchErr
+	}
+	ws.cwdCompName = bestName
+	return bestName, "", nil
+}
+
+func (ws *Workspace) detectWorktreeFromCwd() (string, string, bool) {
+	root := WorktreesRoot(ws)
+	if !isInside(ws.Cwd, root) {
+		return "", "", false
+	}
+
+	rel := strings.TrimPrefix(pathPrefix(ws.Cwd), pathPrefix(root))
+	rel = strings.Trim(rel, "/")
+	if rel == "" {
+		return "", "", false
+	}
+
+	parts := strings.Split(rel, "/")
+	compName := parts[0]
+	if _, err := ws.ComponentByName(compName); err != nil {
+		return "", "", false
+	}
+
+	current := ws.Cwd
+	compRoot := path.Join(root, compName)
+	for isInside(current, compRoot) && path.Clean(current) != path.Clean(compRoot) {
+		if Pc.FileExists(path.Join(current, ".git")) {
+			branch := strings.TrimPrefix(path.Clean(current), path.Clean(compRoot)+"/")
+			if branch != "" && ValidateBranchName(branch) == nil {
+				return compName, branch, true
+			}
+			return "", "", false
+		}
+		next := path.Dir(current)
+		if next == current {
+			break
+		}
+		current = next
+	}
+
+	return "", "", false
 }
 
 func (ws *Workspace) GetComponentNames() []string {

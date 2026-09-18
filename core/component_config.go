@@ -11,21 +11,50 @@ func (s ModeList) contains(v string) bool {
 	return false
 }
 
+type ComponentHooks struct {
+	AfterClone     string `yaml:"after_clone"`
+	WorktreeCreate string `yaml:"worktree_create"`
+	WorktreeRemove string `yaml:"worktree_remove"`
+}
+
+func (h ComponentHooks) merge(h2 ComponentHooks) ComponentHooks {
+	if h2.AfterClone != "" {
+		h.AfterClone = h2.AfterClone
+	}
+	if h2.WorktreeCreate != "" {
+		h.WorktreeCreate = h2.WorktreeCreate
+	}
+	if h2.WorktreeRemove != "" {
+		h.WorktreeRemove = h2.WorktreeRemove
+	}
+	return h
+}
+
 type ComponentConfig struct {
-	Alias          string              `yaml:"alias"`
-	ComposeFile    string              `yaml:"compose_file"`
-	Dependencies   map[string]ModeList `yaml:"dependencies"`
-	ExecPath       string              `yaml:"exec_path"`
-	Extends        string              `yaml:"extends"`
-	HostedIn       string              `yaml:"hosted_in"`
-	Hostname       string              `yaml:"hostname"`
-	IsTemplate     bool                `yaml:"is_template"`
-	Path           string              `yaml:"path"`
-	Replace        bool                `yaml:"replace"`
-	Variables      OrderedVars         `yaml:"variables"`
-	Repository     string              `yaml:"repository"`
-	Tags           []string            `yaml:"tags"`
-	AfterCloneHook string              `yaml:"after_clone_hook"`
+	Alias        string              `yaml:"alias"`
+	ComposeFile  string              `yaml:"compose_file"`
+	Dependencies map[string]ModeList `yaml:"dependencies"`
+	ExecPath     string              `yaml:"exec_path"`
+	Extends      string              `yaml:"extends"`
+	HostedIn     string              `yaml:"hosted_in"`
+	Hostname     string              `yaml:"hostname"`
+	IsTemplate   bool                `yaml:"is_template"`
+	Path         string              `yaml:"path"`
+	Replace      bool                `yaml:"replace"`
+	Variables    OrderedVars         `yaml:"variables"`
+	Repository   string              `yaml:"repository"`
+	Tags         []string            `yaml:"tags"`
+	Hooks        ComponentHooks      `yaml:"hooks"`
+
+	// deprecated: use hooks.after_clone
+	AfterCloneHook string `yaml:"after_clone_hook"`
+}
+
+func (cc *ComponentConfig) ResolvedAfterCloneHook() string {
+	if cc.Hooks.AfterClone != "" {
+		return cc.Hooks.AfterClone
+	}
+	return cc.AfterCloneHook
 }
 
 func (cc ComponentConfig) merge(cc2 ComponentConfig) ComponentConfig {
@@ -54,6 +83,7 @@ func (cc ComponentConfig) merge(cc2 ComponentConfig) ComponentConfig {
 	if cc2.Repository != "" {
 		cc.Repository = cc2.Repository
 	}
+	cc.Hooks = cc.Hooks.merge(cc2.Hooks)
 	if cc2.AfterCloneHook != "" {
 		cc.AfterCloneHook = cc2.AfterCloneHook
 	}

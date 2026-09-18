@@ -48,6 +48,8 @@ func InitCobra() *cobra.Command {
 	rootCmd.PersistentFlags().BoolVar(&globalOptions.Debug, "debug", false, "print debug messages")
 	rootCmd.PersistentFlags().BoolVar(&globalOptions.DryRun, "dry-run", false, "do not execute real command, only debug")
 	rootCmd.PersistentFlags().StringVar(&globalOptions.Tag, "tag", "", "select all components with tag")
+	rootCmd.PersistentFlags().StringVarP(&globalOptions.Branch, "branch", "b", "", "use component worktree for the given git branch")
+	rootCmd.PersistentFlags().StringVar(&globalOptions.Source, "source", "", "create missing branch from this ref (branch name or HEAD)")
 
 	parseStartFlags(rootCmd)
 	parseExecFlags(rootCmd)
@@ -60,11 +62,13 @@ func InitCobra() *cobra.Command {
 	NewServiceVarsCommand(rootCmd)
 	NewServiceComposeCommand(rootCmd)
 	NewServiceWrapCommand(rootCmd)
+	NewServiceLaunchCommand(rootCmd)
 	NewServiceExecCommand(rootCmd)
 	NewServiceRunCommand(rootCmd)
 	NewServiceSetHooksCommand(rootCmd)
 	NewServiceCloneCommand(rootCmd)
 	NewServiceListCommand(rootCmd)
+	NewWorktreeCommand(rootCmd)
 
 	return rootCmd
 }
@@ -270,6 +274,23 @@ func NewServiceWrapCommand(parentCommand *cobra.Command) {
 	parentCommand.AddCommand(command)
 }
 
+func NewServiceLaunchCommand(parentCommand *cobra.Command) {
+	var command = &cobra.Command{
+		Use:   "launch [COMMAND]",
+		Short: "Run command on host in component directory",
+		Long:  "Run command on host in the component folder (main clone or worktree).\nComponent is selected via CWD, -c/--component.\nIf --branch is set (or CWD is a worktree), the worktree is used; missing worktrees are created automatically (fetch + remote branch resolve).",
+		Args:  cobra.ArbitraryArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return cmd.Help()
+			}
+			return actions.LaunchAction(&globalOptions, args)
+		},
+	}
+	command.Flags().SetInterspersed(false)
+	parentCommand.AddCommand(command)
+}
+
 func NewServiceExecCommand(parentCommand *cobra.Command) {
 	var command = &cobra.Command{
 		Use:   "exec [OPTIONS] [COMMAND]",
@@ -351,5 +372,80 @@ func NewServiceListCommand(parentCommand *cobra.Command) {
 			return actions.ListServicesAction(&globalOptions)
 		},
 	}
+	parentCommand.AddCommand(command)
+}
+
+func NewWorktreeCommand(parentCommand *cobra.Command) {
+	var noHook bool
+	var command = &cobra.Command{
+		Use:     "worktree [branch]",
+		Aliases: []string{"wt"},
+		Short:   "Create a git worktree instance of a component",
+		Long:    "Create a git worktree of the current or selected component at $WORKTREES_PATH/<component>/<branch>.\nFetches remotes and creates a local tracking branch when the branch exists only on origin.\nIf the branch does not exist anywhere, fails unless --source=<branch|HEAD> is set.\nAfter creation, optional hooks.worktree_create is executed.\nArguments after -- are passed to the hook script.",
+		Args:    cobra.ArbitraryArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return cmd.Help()
+			}
+			return actions.AddWorktreeAction(&globalOptions, args[0], args[1:], noHook)
+		},
+	}
+	command.Flags().BoolVar(&noHook, "no-hook", false, "do not execute hooks.worktree_create")
+	NewWorktreeAddCommand(command, &noHook)
+	NewWorktreeListCommand(command)
+	NewWorktreeRemoveCommand(command)
+	parentCommand.AddCommand(command)
+}
+
+func NewWorktreeAddCommand(parentCommand *cobra.Command, noHook *bool) {
+	var command = &cobra.Command{
+		Use:   "add [branch]",
+		Short: "Create a git worktree instance of a component",
+		Long:  "Create a git worktree of the current or selected component at $WORKTREES_PATH/<component>/<branch>.\nArguments after -- are passed to hooks.worktree_create.",
+		Args:  cobra.ArbitraryArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return cmd.Help()
+			}
+			return actions.AddWorktreeAction(&globalOptions, args[0], args[1:], *noHook)
+		},
+	}
+	command.Flags().BoolVar(noHook, "no-hook", false, "do not execute hooks.worktree_create")
+	parentCommand.AddCommand(command)
+}
+
+func NewWorktreeListCommand(parentCommand *cobra.Command) {
+	var command = &cobra.Command{
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List component worktree instances",
+		Long:    "List worktrees under $WORKTREES_PATH.\nOutput lines: <component>\\t<branch>\\t<path>.\nUse -c/--component to filter by component.",
+		Args:    cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return actions.ListWorktreesAction(&globalOptions)
+		},
+	}
+	parentCommand.AddCommand(command)
+}
+
+func NewWorktreeRemoveCommand(parentCommand *cobra.Command) {
+	var force bool
+	var noHook bool
+	var command = &cobra.Command{
+		Use:     "remove [branch]",
+		Aliases: []string{"rm"},
+		Short:   "Remove a component worktree instance",
+		Long:    "Run optional hooks.worktree_remove, destroy containers, and remove the git worktree.\nBranch can be taken from the current directory, argument, or --branch.",
+		Args:    cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			branch := ""
+			if len(args) > 0 {
+				branch = args[0]
+			}
+			return actions.RemoveWorktreeAction(&globalOptions, branch, force, noHook)
+		},
+	}
+	command.Flags().BoolVar(&force, "force", false, "force git worktree removal and ignore compose/hook errors")
+	command.Flags().BoolVar(&noHook, "no-hook", false, "do not execute hooks.worktree_remove")
 	parentCommand.AddCommand(command)
 }

@@ -4,16 +4,19 @@
 - `--debug` - выводит в консоль отладочную информацию
 - `--dry-run` - подавляет выполнение реальных действий
 - `--help`, `-h` - выводит справку по набранной команде
-- `--workspace=NAME`, `-w NAME` - явно задать воркспейс для выполнения текущей команды, игнорируя выбранный или определённый автоматически 
+- `--workspace=NAME`, `-w NAME` - явно задать воркспейс для выполнения текущей команды, игнорируя выбранный или определённый автоматически
+- `--branch=BRANCH`, `-b BRANCH` - работать с worktree-инстансом указанной ветки вместо основного clone компонента
+- `--source=REF` - создать отсутствующую git-ветку от указанного ref (`branch` или `HEAD`); нужен вместе с `-b` / командой `worktree` 
 
 ## Параметры выбора сервиса
 
 Многие команды позволяют указать один или несколько сервисов.  
 Сделать это можно разными способами:
-- ничего не указывая - сервис будет определён автоматически на основании того в какой папке вы находитесь
+- ничего не указывая - сервис будет определён автоматически на основании того в какой папке вы находитесь. Если вы в папке worktree-инстанса, команды работают с этим инстансом
 - перечислив имена одного или нескольких сервисов как аргументы
 - указав имя одного сервиса через флаг `-c NAME`, `--component=NAME` или `--svc=NAME`, используется когда нельзя использовать аргументы
 - задав тэг через флаг `--tag=TAG`
+- указав ветку через `--branch=BRANCH` / `-b BRANCH`, если нужно работать с worktree-инстансом, не находясь в его папке
 
 # Список доступных команд
 
@@ -62,7 +65,8 @@ elc clone [OPTIONS] [SERVICES]
 ```
 Скачать код сервиса в предназначенную для него папку.  
 Адрес git репозитория сервиса можно задать в `workspace.yaml`. В результате будет выполнен `git clone`.
-После клонирования, если в воркспейсе для сервиса или шаблона задан `after_clone_hook`, то он будет выполнен.  
+После клонирования, если в воркспейсе для сервиса или шаблона задан `hooks.after_clone`
+(или устаревший `after_clone_hook`), то он будет выполнен.  
 
 Опции:
 * `--no-hook` - не выполнять хук после клонирования
@@ -72,6 +76,114 @@ elc clone [OPTIONS] [SERVICES]
 ```
 elc clone MY_SERVICE
 elc clone --tag=frontend
+```
+
+## worktree
+```
+elc worktree <BRANCH> [-- HOOK_ARGS...]
+elc worktree add <BRANCH> [-- HOOK_ARGS...]
+```
+Создать git worktree текущего или указанного (`-c`) компонента в папке
+`$WORKTREES_PATH/<component>/<branch>`.
+
+Алиас: `wt`.
+
+Перед созданием выполняется `git fetch`; ошибка fetch прерывает создание
+(чтобы `--source` не создал ветку при недоступном remote).
+Если локальной ветки нет, а на `origin` есть одноимённая — прозрачно создаётся
+локальная tracking-ветка с именем `<branch>`.
+Если ветки нигде нет — ошибка; передайте `--source=<branch|HEAD>`, чтобы создать
+новую ветку от указанного ref (`HEAD` / `head` — от текущего HEAD основного clone).
+
+Путь задаётся переменной `WORKTREES_PATH` в блоке `variables` (можно переопределить в `env.yaml`).
+Если переменная не задана, используется `${WORKSPACE_PATH}/worktrees` — рядом с `apps`.
+
+Основной clone компонента должен уже существовать.
+
+После создания, если для сервиса или шаблона задан `hooks.worktree_create`, он будет
+выполнен. Аргументы после `--` передаются хуку как есть.
+
+Опции:
+* `--no-hook` - не выполнять хук после создания
+* `--component=NAME`, `-c NAME` - компонент, если вы не в его папке
+* `--source=REF` - создать отсутствующую ветку от ref (`main`, `HEAD`, …)
+
+Примеры:
+```
+elc worktree feature/foo
+elc wt feature/foo
+elc worktree feature/foo --source=HEAD
+elc worktree feature/foo --source=main
+elc worktree feature/foo -- --env=staging
+elc worktree add feature/foo -c app1 -- --env=staging
+```
+
+## worktree list
+```
+elc worktree list
+elc worktree ls
+elc wt ls
+```
+Показать список worktree-инстансов воркспейса.  
+Строки вывода: `<component>\t<branch>\t<path>`.
+
+Опции:
+* `--component=NAME`, `-c NAME` - только worktrees указанного компонента
+
+Примеры:
+```
+elc worktree list
+elc wt ls -c app1
+```
+
+## worktree remove
+```
+elc worktree remove [BRANCH]
+elc worktree rm [BRANCH]
+elc wt rm [BRANCH]
+```
+Остановить контейнеры инстанса и удалить git worktree. Саму git-ветку не удаляет.
+
+Перед удалением, если задан `hooks.worktree_remove`, он выполняется в контексте
+worktree-инстанса (пока папка ещё существует). Затем `compose down` и `git worktree remove`.
+
+Ветку можно не указывать, если вы находитесь в папке инстанса. Иначе передайте имя
+ветки аргументом или через `--branch`.
+
+Опции:
+* `--force` - принудительно удалить worktree и игнорировать ошибки hook/`compose down`
+* `--no-hook` - не выполнять `hooks.worktree_remove`
+
+Примеры:
+```
+elc worktree remove
+elc worktree remove feature/foo
+elc worktree rm feature/foo -c app1
+elc wt rm feature/foo --no-hook
+```
+
+## launch
+```
+elc launch [OPTIONS] <COMMAND>
+```
+Запустить `<COMMAND>` на хосте в папке компонента (основной clone или worktree).
+Передаёт env переменные компонента, как `wrap`, но меняет рабочую директорию на `SVC_PATH`.
+
+Если `--branch` не задан — используется основной репозиторий.
+Если `--branch` задан (или вы в папке worktree) — команда выполняется в worktree;
+отсутствующий worktree создаётся автоматически (fetch + resolve remote branch).
+Новая git-ветка создаётся только с `--source=<branch|HEAD>`.
+
+Опции:
+* `--component=NAME`, `-c NAME` - компонент
+* `--branch=BRANCH`, `-b BRANCH` - worktree-инстанс ветки
+* `--source=REF` - создать отсутствующую ветку от ref
+
+Примеры:
+```
+elc launch code .
+elc launch -c app1 -b feature/foo code .
+elc launch -b feature/foo --source=HEAD cursor .
 ```
 
 ## start

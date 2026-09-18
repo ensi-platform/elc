@@ -36,10 +36,14 @@ func expectReadHomeConfig(mockPC *core.MockPC) {
 }
 
 func expectReadWorkspaceConfig(mockPC *core.MockPC, workspacePath string, config string, env string) {
+	expectReadWorkspaceConfigCwd(mockPC, workspacePath, path.Join(workspacePath, "apps/test"), config, env)
+}
+
+func expectReadWorkspaceConfigCwd(mockPC *core.MockPC, workspacePath string, cwd string, config string, env string) {
 	configPath := path.Join(workspacePath, "workspace.yaml")
 	envPath := path.Join(workspacePath, "env.yaml")
 	mockPC.EXPECT().Getwd().
-		Return(path.Join(workspacePath, "apps/test"), nil)
+		Return(cwd, nil)
 	mockPC.EXPECT().ReadFile(configPath).
 		Return([]byte(config), nil)
 
@@ -58,6 +62,57 @@ services:
   test:
     path: "${WORKSPACE_PATH}/apps/test"
 `
+
+func TestServiceStartPathWithParentDir(t *testing.T) {
+	mockPc := setupMockPc(t)
+	expectReadHomeConfig(mockPc)
+
+	config := `
+name: ensi
+variables:
+  APPS_ROOT: ${WORKSPACE_PATH}/foo/../apps
+services:
+  test:
+    path: "${APPS_ROOT}/../apps/test"
+    compose_file: ${SVC_PATH}/../test/docker-compose.yml
+`
+	expectReadWorkspaceConfig(mockPc, fakeWorkspacePath, config, "")
+	expectStartService(mockPc, path.Join(fakeWorkspacePath, "apps/test/docker-compose.yml"))
+
+	err := StartServiceAction(&core.GlobalOptions{}, []string{})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestServiceVarsPathWithParentDir(t *testing.T) {
+	mockPc := setupMockPc(t)
+	expectReadHomeConfig(mockPc)
+
+	config := `
+name: ensi
+variables:
+  APPS_ROOT: ${WORKSPACE_PATH}/foo/../apps
+services:
+  test:
+    path: "${APPS_ROOT}/test"
+`
+	expectReadWorkspaceConfig(mockPc, fakeWorkspacePath, config, "")
+
+	mockPc.EXPECT().Println("WORKSPACE_PATH=/tmp/workspaces/project1")
+	mockPc.EXPECT().Println("WORKSPACE_NAME=ensi")
+	mockPc.EXPECT().Println("APPS_ROOT=/tmp/workspaces/project1/apps")
+	mockPc.EXPECT().Println("WORKTREES_PATH=/tmp/workspaces/project1/worktrees")
+	mockPc.EXPECT().Println("APP_NAME=test")
+	mockPc.EXPECT().Println("COMPOSE_PROJECT_NAME=ensi-test")
+	mockPc.EXPECT().Println("SVC_PATH=/tmp/workspaces/project1/apps/test")
+	mockPc.EXPECT().Println("COMPOSE_FILE=/tmp/workspaces/project1/apps/test/docker-compose.yml")
+
+	err := PrintVarsAction(&core.GlobalOptions{}, []string{})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestServiceStart(t *testing.T) {
 	mockPc := setupMockPc(t)
@@ -488,6 +543,7 @@ func TestServiceVars(t *testing.T) {
 	mockPc.EXPECT().Println("V_GL_SIMPLE_VAR=vglobal-a")
 	mockPc.EXPECT().Println("V_GL_WITH_DEFAULT=default")
 	mockPc.EXPECT().Println("V_GL_WITH_DEFAULT_VAR=vglobal")
+	mockPc.EXPECT().Println("WORKTREES_PATH=/tmp/workspaces/project1/worktrees")
 
 	mockPc.EXPECT().Println("APP_NAME=test")
 	mockPc.EXPECT().Println("COMPOSE_PROJECT_NAME=ensi-test")
@@ -511,6 +567,7 @@ func TestServiceVarsWithTpl(t *testing.T) {
 	mockPc.EXPECT().Println("V_GL_SIMPLE_VAR=vglobal-a")
 	mockPc.EXPECT().Println("V_GL_WITH_DEFAULT=default")
 	mockPc.EXPECT().Println("V_GL_WITH_DEFAULT_VAR=vglobal")
+	mockPc.EXPECT().Println("WORKTREES_PATH=/tmp/workspaces/project1/worktrees")
 
 	mockPc.EXPECT().Println("V_IN_TPL=vintpl")
 
