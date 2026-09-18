@@ -583,7 +583,7 @@ func TestServiceVarsWithTpl(t *testing.T) {
 	_ = PrintVarsAction(&core.GlobalOptions{}, []string{"test1"})
 }
 
-func TestHostOnlyStartRejected(t *testing.T) {
+func TestHostOnlyStartActionReturnsError(t *testing.T) {
 	mockPc := setupMockPc(t)
 	expectReadHomeConfig(mockPc)
 
@@ -592,8 +592,30 @@ name: ensi
 services:
   configs:
     path: "${WORKSPACE_PATH}/configs"
-    repository: git@github.com:example/configs.git
     compose_file: null
+`
+	expectReadWorkspaceConfigCwd(mockPc, fakeWorkspacePath, path.Join(fakeWorkspacePath, "configs"), config, "")
+
+	err := StartServiceAction(&core.GlobalOptions{}, []string{})
+	if err == nil || !strings.Contains(err.Error(), "host-only") {
+		t.Fatalf("expected host-only error from action, got %v", err)
+	}
+}
+
+func TestHostOnlyInheritedFromTemplate(t *testing.T) {
+	mockPc := setupMockPc(t)
+	expectReadHomeConfig(mockPc)
+
+	config := `
+name: ensi
+templates:
+  repo-only:
+    path: ${WORKSPACE_PATH}/templates/repo-only
+    compose_file: null
+services:
+  configs:
+    path: "${WORKSPACE_PATH}/configs"
+    extends: repo-only
 `
 	expectReadWorkspaceConfigCwd(mockPc, fakeWorkspacePath, path.Join(fakeWorkspacePath, "configs"), config, "")
 
@@ -606,11 +628,21 @@ services:
 		t.Fatal(err)
 	}
 	if !comp.IsHostOnly() {
-		t.Fatal("expected host-only component")
+		t.Fatal("expected host-only inherited from template")
 	}
-	err = comp.Start(&core.GlobalOptions{})
-	if err == nil || !strings.Contains(err.Error(), "host-only") {
-		t.Fatalf("expected host-only error, got %v", err)
+	if comp.HasCompose() {
+		t.Fatal("expected no COMPOSE_FILE when template has compose_file: null")
+	}
+}
+
+func TestTagAndBranchRejected(t *testing.T) {
+	mockPc := setupMockPc(t)
+	expectReadHomeConfig(mockPc)
+	expectReadWorkspaceConfig(mockPc, fakeWorkspacePath, workspaceConfig, "")
+
+	err := StartServiceAction(&core.GlobalOptions{Tag: "backend", Branch: "feat"}, []string{})
+	if err == nil || !strings.Contains(err.Error(), "--tag and --branch") {
+		t.Fatalf("expected tag/branch conflict, got %v", err)
 	}
 }
 

@@ -8,7 +8,8 @@ func TestCleanConfigPath(t *testing.T) {
 		"/tmp/ws/apps/../apps/test": "/tmp/ws/apps/test",
 		"/tmp/ws/./apps/test":       "/tmp/ws/apps/test",
 		"/tmp/ws/apps/test":         "/tmp/ws/apps/test",
-		"/tmp/ws/apps/test/":        "/tmp/ws/apps/test",
+		"/tmp/ws/apps/test/":        "/tmp/ws/apps/test/",
+		"/api/v1/":                  "/api/v1/",
 		"fpm-8.1:latest":            "fpm-8.1:latest",
 		"relative/foo/../bar":       "relative/foo/../bar",
 		"":                          "",
@@ -48,5 +49,13 @@ func TestSubstVarsCleansAbsolutePaths(t *testing.T) {
 	}
 	if got != "fpm-8.1:latest" {
 		t.Fatalf("non-path value changed: %q", got)
+	}
+
+	got, err = substVars("/api/v1/", &ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "/api/v1/" {
+		t.Fatalf("API prefix should keep trailing slash, got %q", got)
 	}
 }

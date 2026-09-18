@@ -427,11 +427,11 @@ func TestServiceVarsWorktree(t *testing.T) {
 	mockPc.EXPECT().Println("WORKSPACE_PATH=/tmp/workspaces/project1")
 	mockPc.EXPECT().Println("WORKSPACE_NAME=ensi")
 	mockPc.EXPECT().Println("WORKTREES_PATH=/tmp/workspaces/project1/worktrees")
-	mockPc.EXPECT().Println("SVC_PATH=/tmp/workspaces/project1/worktrees/test/feat")
-	mockPc.EXPECT().Println("COMPOSE_FILE=/tmp/workspaces/project1/worktrees/test/feat/docker-compose.yml")
 	mockPc.EXPECT().Println("GIT_BRANCH=feat")
 	mockPc.EXPECT().Println("APP_NAME=test-feat")
 	mockPc.EXPECT().Println("COMPOSE_PROJECT_NAME=ensi-test-feat")
+	mockPc.EXPECT().Println("SVC_PATH=/tmp/workspaces/project1/worktrees/test/feat")
+	mockPc.EXPECT().Println("COMPOSE_FILE=/tmp/workspaces/project1/worktrees/test/feat/docker-compose.yml")
 
 	err := PrintVarsAction(&core.GlobalOptions{Branch: "feat"}, []string{})
 	if err != nil {
@@ -589,6 +589,37 @@ func TestListWorktreesFilterComponent(t *testing.T) {
 	mockPc.EXPECT().Println("test\tfeat\t" + featRoot)
 
 	err := ListWorktreesAction(&core.GlobalOptions{ComponentName: "test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestListWorktreesFilterAlias(t *testing.T) {
+	mockPc := setupMockPc(t)
+	expectReadHomeConfig(mockPc)
+
+	config := `
+name: ensi
+services:
+  test:
+    path: "${WORKSPACE_PATH}/apps/test"
+    alias: t
+    repository: git@github.com:example/test.git
+`
+	expectReadWorkspaceConfig(mockPc, fakeWorkspacePath, config, "")
+
+	root := path.Join(fakeWorkspacePath, "worktrees")
+	testRoot := path.Join(root, "test")
+	featRoot := path.Join(testRoot, "feat")
+
+	mockPc.EXPECT().FileExists(root).Return(true)
+	mockPc.EXPECT().ReadDir(root).Return([]os.FileInfo{core.DirInfo("test")}, nil)
+	mockPc.EXPECT().FileExists(path.Join(testRoot, ".git")).Return(false)
+	mockPc.EXPECT().ReadDir(testRoot).Return([]os.FileInfo{core.DirInfo("feat")}, nil)
+	mockPc.EXPECT().FileExists(path.Join(featRoot, ".git")).Return(true)
+	mockPc.EXPECT().Println("test\tfeat\t" + featRoot)
+
+	err := ListWorktreesAction(&core.GlobalOptions{ComponentName: "t"})
 	if err != nil {
 		t.Fatal(err)
 	}

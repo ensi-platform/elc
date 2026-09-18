@@ -15,6 +15,14 @@ type WorktreeInfo struct {
 }
 
 func (ws *Workspace) ListWorktrees(componentFilter string) ([]WorktreeInfo, error) {
+	if componentFilter != "" {
+		comp, err := ws.ComponentByName(componentFilter)
+		if err != nil {
+			return nil, err
+		}
+		componentFilter = comp.Name
+	}
+
 	root := WorktreesRoot(ws)
 	if !Pc.FileExists(root) {
 		return nil, nil

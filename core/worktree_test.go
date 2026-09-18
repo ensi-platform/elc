@@ -6,17 +6,32 @@ import (
 
 func TestSanitizeInstanceName(t *testing.T) {
 	cases := map[string]string{
-		"feature/foo": "feature-foo",
-		"Feature/FOO": "feature-foo",
-		"feat--bar":   "feat-bar",
-		"my_branch":   "my-branch",
+		"feature/foo": "feature_foo",
+		"Feature/FOO": "feature_foo",
+		"feature-foo": "feature-foo",
+		"feature_foo": "feature__foo",
+		"feat--bar":   "feat--bar",
+		"my_branch":   "my__branch",
 		"already-ok":  "already-ok",
+		"foo@bar":     "foo-bar",
+		"фича/foo":    "_foo",
 		"///":         "",
 	}
 	for in, want := range cases {
 		if got := SanitizeInstanceName(in); got != want {
 			t.Errorf("SanitizeInstanceName(%q) = %q, want %q", in, got, want)
 		}
+	}
+
+	// colliding separators must stay distinct
+	if SanitizeInstanceName("feature/foo") == SanitizeInstanceName("feature-foo") {
+		t.Fatal("slash and dash branches collided")
+	}
+	if SanitizeInstanceName("feature/foo") == SanitizeInstanceName("feature_foo") {
+		t.Fatal("slash and underscore branches collided")
+	}
+	if SanitizeInstanceName("feature-foo") == SanitizeInstanceName("feature_foo") {
+		t.Fatal("dash and underscore branches collided")
 	}
 }
 

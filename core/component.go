@@ -8,12 +8,13 @@ import (
 )
 
 type Component struct {
-	Name        string
-	Config      *ComponentConfig
-	Template    *ComponentConfig
-	JustStarted bool
-	Context     *Context
-	Workspace   *Workspace
+	Name           string
+	Config         *ComponentConfig
+	Template       *ComponentConfig
+	JustStarted    bool
+	Context        *Context
+	Workspace      *Workspace
+	worktreeBranch string
 }
 
 func NewComponent(compName string, compCfg *ComponentConfig, ws *Workspace) *Component {
@@ -28,8 +29,17 @@ func (comp *Component) init() error {
 	ctx := make(Context, len(*comp.Workspace.Context))
 	copy(ctx, *comp.Workspace.Context)
 
-	ctx = ctx.add("APP_NAME", comp.Name)
-	ctx = ctx.add("COMPOSE_PROJECT_NAME", fmt.Sprintf("%s-%s", comp.Workspace.Config.Name, comp.Name))
+	appName := comp.Name
+	projectName := fmt.Sprintf("%s-%s", comp.Workspace.Config.Name, comp.Name)
+	if comp.worktreeBranch != "" {
+		sanitized := SanitizeInstanceName(comp.worktreeBranch)
+		appName = fmt.Sprintf("%s-%s", comp.Name, sanitized)
+		projectName = fmt.Sprintf("%s-%s-%s", comp.Workspace.Config.Name, comp.Name, sanitized)
+		ctx = ctx.add("GIT_BRANCH", comp.worktreeBranch)
+	}
+	ctx = ctx.add("APP_NAME", appName)
+	ctx = ctx.add("COMPOSE_PROJECT_NAME", projectName)
+
 	svcPath, err := ctx.RenderString(comp.Config.Path)
 	if err != nil {
 		return err
@@ -81,7 +91,8 @@ func (comp *Component) init() error {
 		ctx = ctx.add("COMPOSE_FILE", composeFile)
 	} else {
 		composeFile, found := ctx.find("COMPOSE_FILE")
-		if !found || composeFile == "" {
+		templateDisabled := comp.Template != nil && comp.Template.ComposeFile().Disabled
+		if (!found || composeFile == "") && !templateDisabled {
 			composeFile, err := ctx.RenderString("${SVC_PATH}/docker-compose.yml")
 			if err != nil {
 				return err
@@ -112,14 +123,20 @@ func (comp *Component) HasCompose() bool {
 }
 
 func (comp *Component) IsHostOnly() bool {
-	return comp.Config.ComposeFile().Disabled
+	if comp.Config.ComposeFile().Disabled {
+		return true
+	}
+	if !comp.Config.ComposeFile().Present && comp.Template != nil && comp.Template.ComposeFile().Disabled {
+		return true
+	}
+	return false
 }
 
 func (comp *Component) requireCompose(action string) error {
 	if comp.HasCompose() {
 		return nil
 	}
-	if comp.Config.ComposeFile().Disabled {
+	if comp.IsHostOnly() {
 		return fmt.Errorf("component %q is host-only (compose_file: null); %s is unavailable", comp.Name, action)
 	}
 	if comp.Config.HostedIn != "" {

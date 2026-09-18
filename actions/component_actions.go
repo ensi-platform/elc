@@ -30,6 +30,10 @@ func resolveCompNames(ws *core.Workspace, options *core.GlobalOptions, namesFrom
 }
 
 func resolveComponents(ws *core.Workspace, options *core.GlobalOptions, namesFromArgs []string) ([]*core.Component, error) {
+	if options.Tag != "" && options.Branch != "" {
+		return nil, errors.New("--tag and --branch cannot be used together")
+	}
+
 	compNames, err := resolveCompNames(ws, options, namesFromArgs)
 	if err != nil {
 		return nil, err
@@ -44,12 +48,9 @@ func resolveComponents(ws *core.Workspace, options *core.GlobalOptions, namesFro
 			return nil, err
 		}
 
-		branch := ""
-		if options.Tag == "" {
-			branch = options.Branch
-			if branch == "" && cwdBranch != "" && cwdName == comp.Name {
-				branch = cwdBranch
-			}
+		branch := options.Branch
+		if branch == "" && cwdBranch != "" && cwdName == comp.Name {
+			branch = cwdBranch
 		}
 
 		if branch != "" {
@@ -120,9 +121,8 @@ func StartServiceAction(options *core.GlobalOptions, svcNames []string) error {
 	}
 
 	for _, comp := range comps {
-		err = comp.Start(options)
-		if err != nil {
-			fmt.Printf("Error: %s\n", err)
+		if err := comp.Start(options); err != nil {
+			return err
 		}
 	}
 
@@ -179,9 +179,8 @@ func RestartServiceAction(hardRestart bool, svcNames []string, options *core.Glo
 	}
 
 	for _, comp := range comps {
-		err = comp.Restart(hardRestart, options)
-		if err != nil {
-			fmt.Printf("Error: %s\n", err)
+		if err := comp.Restart(hardRestart, options); err != nil {
+			return err
 		}
 	}
 

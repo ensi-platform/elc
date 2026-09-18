@@ -96,5 +96,10 @@ func cleanConfigPath(p string) string {
 	if p == "" || !strings.HasPrefix(p, "/") {
 		return p
 	}
+	// Only normalize real path traversal / empty segments; keep trailing slashes
+	// and other absolute strings (e.g. API prefixes) intact.
+	if !strings.Contains(p, "/.") && !strings.Contains(p, "//") {
+		return p
+	}
 	return path.Clean(p)
 }

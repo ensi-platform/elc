@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"path"
 	"strings"
-	"unicode"
 )
 
 func WorktreesRoot(ws *Workspace) string {
@@ -48,16 +47,32 @@ func SanitizeInstanceName(s string) string {
 	s = strings.ToLower(s)
 	var b strings.Builder
 	prevDash := false
+	hasAlnum := false
 	for _, r := range s {
-		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+		switch {
+		case r >= 'a' && r <= 'z' || r >= '0' && r <= '9':
 			b.WriteRune(r)
 			prevDash = false
-			continue
-		}
-		if !prevDash {
+			hasAlnum = true
+		case r == '/':
+			// slash → single underscore; underscore in branch → doubled (keeps names unique)
+			b.WriteByte('_')
+			prevDash = false
+		case r == '_':
+			b.WriteString("__")
+			prevDash = false
+		case r == '-':
 			b.WriteByte('-')
-			prevDash = true
+			prevDash = false
+		default:
+			if !prevDash {
+				b.WriteByte('-')
+				prevDash = true
+			}
 		}
+	}
+	if !hasAlnum {
+		return ""
 	}
 	return strings.Trim(b.String(), "-")
 }
@@ -120,15 +135,10 @@ func (comp *Component) ForWorktree(branch string) (*Component, error) {
 	cfg.Path = dest
 
 	clone := NewComponent(comp.Name, &cfg, comp.Workspace)
+	clone.worktreeBranch = branch
 	if err := clone.init(); err != nil {
 		return nil, err
 	}
-
-	sanitized := SanitizeInstanceName(branch)
-	ctx := clone.Context.add("GIT_BRANCH", branch)
-	ctx = ctx.add("APP_NAME", fmt.Sprintf("%s-%s", comp.Name, sanitized))
-	ctx = ctx.add("COMPOSE_PROJECT_NAME", fmt.Sprintf("%s-%s-%s", comp.Workspace.Config.Name, comp.Name, sanitized))
-	clone.Context = &ctx
 
 	return clone, nil
 }
