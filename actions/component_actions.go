@@ -29,6 +29,72 @@ func resolveCompNames(ws *core.Workspace, options *core.GlobalOptions, namesFrom
 	return compNames, nil
 }
 
+func resolveComponents(ws *core.Workspace, options *core.GlobalOptions, namesFromArgs []string) ([]*core.Component, error) {
+	if options.Tag != "" && options.Branch != "" {
+		return nil, errors.New("--tag and --branch cannot be used together")
+	}
+
+	compNames, err := resolveCompNames(ws, options, namesFromArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	cwdName, cwdBranch, _ := ws.MatchCwd()
+
+	result := make([]*core.Component, 0, len(compNames))
+	for _, compName := range compNames {
+		comp, err := ws.ComponentByName(compName)
+		if err != nil {
+			return nil, err
+		}
+
+		branch := options.Branch
+		if branch == "" && cwdBranch != "" && cwdName == comp.Name {
+			branch = cwdBranch
+		}
+
+		if branch != "" {
+			instance, err := comp.ForWorktree(branch)
+			if err != nil {
+				return nil, err
+			}
+			cloned, err := instance.IsCloned()
+			if err != nil {
+				return nil, err
+			}
+			if !cloned {
+				instance, err = comp.EnsureWorktree(options, branch, false)
+				if err != nil {
+					return nil, err
+				}
+			}
+			comp = instance
+		}
+
+		result = append(result, comp)
+	}
+
+	return result, nil
+}
+
+func resolveComponent(ws *core.Workspace, options *core.GlobalOptions, namesFromArgs []string) (*core.Component, error) {
+	comps, err := resolveComponents(ws, options, namesFromArgs)
+	if err != nil {
+		return nil, err
+	}
+	if len(comps) > 1 {
+		return nil, errors.New("too many components")
+	}
+	return comps[0], nil
+}
+
+func execHostComponent(comp *core.Component, ws *core.Workspace) (*core.Component, error) {
+	if comp.Config.HostedIn == "" {
+		return comp, nil
+	}
+	return ws.ComponentByName(comp.Config.HostedIn)
+}
+
 func ListCompNames(ws *core.Workspace, options *core.GlobalOptions) ([]string, error) {
 	var compNames []string
 	if options.Tag == "" {
@@ -49,21 +115,14 @@ func StartServiceAction(options *core.GlobalOptions, svcNames []string) error {
 		return err
 	}
 
-	compNames, err := resolveCompNames(ws, options, svcNames)
+	comps, err := resolveComponents(ws, options, svcNames)
 	if err != nil {
 		return err
 	}
 
-	for _, compName := range compNames {
-		fmt.Printf("# component: %s\n", compName)
-		comp, err := ws.ComponentByName(compName)
-		if err != nil {
+	for _, comp := range comps {
+		if err := comp.Start(options); err != nil {
 			return err
-		}
-
-		err = comp.Start(options)
-		if err != nil {
-			fmt.Printf("Error: %s\n", err)
 		}
 	}
 
@@ -76,23 +135,25 @@ func StopServiceAction(stopAll bool, svcNames []string, destroy bool, options *c
 		return err
 	}
 
-	var compNames []string
+	var comps []*core.Component
 
 	if stopAll {
-		compNames = ws.GetComponentNames()
+		compNames := ws.GetComponentNames()
+		for _, compName := range compNames {
+			comp, err := ws.ComponentByName(compName)
+			if err != nil {
+				return err
+			}
+			comps = append(comps, comp)
+		}
 	} else {
-		compNames, err = resolveCompNames(ws, options, svcNames)
+		comps, err = resolveComponents(ws, options, svcNames)
 		if err != nil {
 			return err
 		}
 	}
 
-	for _, compName := range compNames {
-		fmt.Printf("# component: %s\n", compName)
-		comp, err := ws.ComponentByName(compName)
-		if err != nil {
-			return err
-		}
+	for _, comp := range comps {
 		if destroy {
 			err = comp.Destroy(options)
 		} else {
@@ -112,21 +173,14 @@ func RestartServiceAction(hardRestart bool, svcNames []string, options *core.Glo
 		return err
 	}
 
-	compNames, err := resolveCompNames(ws, options, svcNames)
+	comps, err := resolveComponents(ws, options, svcNames)
 	if err != nil {
 		return err
 	}
 
-	for _, compName := range compNames {
-		fmt.Printf("# component: %s\n", compName)
-		comp, err := ws.ComponentByName(compName)
-		if err != nil {
+	for _, comp := range comps {
+		if err := comp.Restart(hardRestart, options); err != nil {
 			return err
-		}
-
-		err = comp.Restart(hardRestart, options)
-		if err != nil {
-			fmt.Printf("Error: %s\n", err)
 		}
 	}
 
@@ -139,16 +193,7 @@ func PrintVarsAction(options *core.GlobalOptions, svcNames []string) error {
 		return err
 	}
 
-	compNames, err := resolveCompNames(ws, options, svcNames)
-	if err != nil {
-		return err
-	}
-
-	if len(compNames) > 1 {
-		return errors.New("too many components for show")
-	}
-
-	comp, err := ws.ComponentByName(compNames[0])
+	comp, err := resolveComponent(ws, options, svcNames)
 	if err != nil {
 		return err
 	}
@@ -167,16 +212,7 @@ func ComposeCommandAction(options *core.GlobalOptions, args []string) error {
 		return err
 	}
 
-	compNames, err := resolveCompNames(ws, options, []string{})
-	if err != nil {
-		return err
-	}
-
-	if len(compNames) > 1 {
-		return errors.New("too many components")
-	}
-
-	comp, err := ws.ComponentByName(compNames[0])
+	comp, err := resolveComponent(ws, options, []string{})
 	if err != nil {
 		return err
 	}
@@ -197,29 +233,12 @@ func WrapCommandAction(options *core.GlobalOptions, command []string) error {
 		return err
 	}
 
-	compNames, err := resolveCompNames(ws, options, []string{})
+	comp, err := resolveComponent(ws, options, []string{})
 	if err != nil {
 		return err
 	}
 
-	if len(compNames) > 1 {
-		return errors.New("too many components")
-	}
-
-	comp, err := ws.ComponentByName(compNames[0])
-	if err != nil {
-		return err
-	}
-
-	var hostName string
-
-	if comp.Config.HostedIn != "" {
-		hostName = comp.Config.HostedIn
-	} else {
-		hostName = comp.Name
-	}
-
-	hostComp, err := ws.ComponentByName(hostName)
+	hostComp, err := execHostComponent(comp, ws)
 	if err != nil {
 		return err
 	}
@@ -238,29 +257,12 @@ func ExecAction(options *core.GlobalOptions) error {
 		return err
 	}
 
-	compNames, err := resolveCompNames(ws, options, []string{})
+	comp, err := resolveComponent(ws, options, []string{})
 	if err != nil {
 		return err
 	}
 
-	if len(compNames) > 1 {
-		return errors.New("too many components")
-	}
-
-	comp, err := ws.ComponentByName(compNames[0])
-	if err != nil {
-		return err
-	}
-
-	var hostName string
-
-	if comp.Config.HostedIn != "" {
-		hostName = comp.Config.HostedIn
-	} else {
-		hostName = comp.Name
-	}
-
-	hostComp, err := ws.ComponentByName(hostName)
+	hostComp, err := execHostComponent(comp, ws)
 	if err != nil {
 		return err
 	}
@@ -286,29 +288,12 @@ func RunAction(options *core.GlobalOptions) error {
 		return err
 	}
 
-	compNames, err := resolveCompNames(ws, options, []string{})
+	comp, err := resolveComponent(ws, options, []string{})
 	if err != nil {
 		return err
 	}
 
-	if len(compNames) > 1 {
-		return errors.New("too many components")
-	}
-
-	comp, err := ws.ComponentByName(compNames[0])
-	if err != nil {
-		return err
-	}
-
-	var hostName string
-
-	if comp.Config.HostedIn != "" {
-		hostName = comp.Config.HostedIn
-	} else {
-		hostName = comp.Name
-	}
-
-	hostComp, err := ws.ComponentByName(hostName)
+	hostComp, err := execHostComponent(comp, ws)
 	if err != nil {
 		return err
 	}
@@ -328,7 +313,7 @@ func RunAction(options *core.GlobalOptions) error {
 	return nil
 }
 
-func SetGitHooksAction(options *core.GlobalOptions, scriptsFolder string, elcBinary string) error {
+func SetGitHooksAction(options *core.GlobalOptions, scriptsFolder string, elcBinary string, native bool) error {
 	ws, err := core.GetWorkspaceConfig(options.WorkspaceName)
 	if err != nil {
 		return err
@@ -340,13 +325,12 @@ func SetGitHooksAction(options *core.GlobalOptions, scriptsFolder string, elcBin
 	}
 
 	for _, compName := range compNames {
-		fmt.Printf("# component: %s\n", compName)
 		comp, err := ws.ComponentByName(compName)
 		if err != nil {
 			return err
 		}
 
-		err = comp.UpdateHooks(options, elcBinary, scriptsFolder)
+		err = comp.UpdateHooks(options, elcBinary, scriptsFolder, native)
 		if err != nil {
 			fmt.Printf("Error: %s\n", err)
 		}
@@ -367,7 +351,6 @@ func CloneComponentAction(options *core.GlobalOptions, svcNames []string, noHook
 	}
 
 	for _, compName := range compNames {
-		fmt.Printf("# component: %s\n", compName)
 		comp, err := ws.ComponentByName(compName)
 		if err != nil {
 			return err

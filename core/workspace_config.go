@@ -44,6 +44,12 @@ func (wsc *WorkspaceConfig) normalize() {
 		wsc.Components[k] = v
 	}
 	wsc.Modules = nil
+
+	for name, comp := range wsc.Components {
+		if comp.Alias != "" {
+			wsc.Aliases[comp.Alias] = name
+		}
+	}
 }
 
 func (wsc WorkspaceConfig) merge(wsc2 WorkspaceConfig) WorkspaceConfig {

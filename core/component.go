@@ -8,12 +8,13 @@ import (
 )
 
 type Component struct {
-	Name        string
-	Config      *ComponentConfig
-	Template    *ComponentConfig
-	JustStarted bool
-	Context     *Context
-	Workspace   *Workspace
+	Name           string
+	Config         *ComponentConfig
+	Template       *ComponentConfig
+	JustStarted    bool
+	Context        *Context
+	Workspace      *Workspace
+	worktreeBranch string
 }
 
 func NewComponent(compName string, compCfg *ComponentConfig, ws *Workspace) *Component {
@@ -28,8 +29,17 @@ func (comp *Component) init() error {
 	ctx := make(Context, len(*comp.Workspace.Context))
 	copy(ctx, *comp.Workspace.Context)
 
-	ctx = ctx.add("APP_NAME", comp.Name)
-	ctx = ctx.add("COMPOSE_PROJECT_NAME", fmt.Sprintf("%s-%s", comp.Workspace.Config.Name, comp.Name))
+	appName := comp.Name
+	projectName := fmt.Sprintf("%s-%s", comp.Workspace.Config.Name, comp.Name)
+	if comp.worktreeBranch != "" {
+		sanitized := SanitizeInstanceName(comp.worktreeBranch)
+		appName = fmt.Sprintf("%s-%s", comp.Name, sanitized)
+		projectName = fmt.Sprintf("%s-%s-%s", comp.Workspace.Config.Name, comp.Name, sanitized)
+		ctx = ctx.add("GIT_BRANCH", comp.worktreeBranch)
+	}
+	ctx = ctx.add("APP_NAME", appName)
+	ctx = ctx.add("COMPOSE_PROJECT_NAME", projectName)
+
 	svcPath, err := ctx.RenderString(comp.Config.Path)
 	if err != nil {
 		return err
@@ -48,14 +58,19 @@ func (comp *Component) init() error {
 			return err
 		}
 		ctx = ctx.add("TPL_PATH", tplPath)
-		if tpl.ComposeFile == "" {
-			tpl.ComposeFile = "${TPL_PATH}/docker-compose.yml"
+
+		if !tpl.ComposeFile().Disabled {
+			composePath := tpl.ComposeFile().Value
+			if !tpl.ComposeFile().Present || composePath == "" {
+				composePath = "${TPL_PATH}/docker-compose.yml"
+			}
+			composeFile, err := ctx.RenderString(composePath)
+			if err != nil {
+				return err
+			}
+			ctx = ctx.add("COMPOSE_FILE", composeFile)
 		}
-		composeFile, err := ctx.RenderString(tpl.ComposeFile)
-		if err != nil {
-			return err
-		}
-		ctx = ctx.add("COMPOSE_FILE", composeFile)
+
 		for _, pair := range tpl.Variables {
 			value, err := ctx.RenderString(pair.Value)
 			if err != nil {
@@ -65,20 +80,25 @@ func (comp *Component) init() error {
 		}
 	}
 
-	if comp.Config.ComposeFile != "" {
-		composeFile, err := ctx.RenderString(comp.Config.ComposeFile)
+	compCompose := comp.Config.ComposeFile()
+	if compCompose.Disabled {
+		ctx = ctx.remove("COMPOSE_FILE")
+	} else if compCompose.Present && compCompose.Value != "" {
+		composeFile, err := ctx.RenderString(compCompose.Value)
 		if err != nil {
 			return err
 		}
 		ctx = ctx.add("COMPOSE_FILE", composeFile)
-	}
-	composeFile, found := ctx.find("COMPOSE_FILE")
-	if !found || composeFile == "" {
-		composeFile, err := ctx.RenderString("${SVC_PATH}/docker-compose.yml")
-		if err != nil {
-			return err
+	} else {
+		composeFile, found := ctx.find("COMPOSE_FILE")
+		templateDisabled := comp.Template != nil && comp.Template.ComposeFile().Disabled
+		if (!found || composeFile == "") && !templateDisabled {
+			composeFile, err := ctx.RenderString("${SVC_PATH}/docker-compose.yml")
+			if err != nil {
+				return err
+			}
+			ctx = ctx.add("COMPOSE_FILE", composeFile)
 		}
-		ctx = ctx.add("COMPOSE_FILE", composeFile)
 	}
 
 	for _, pair := range comp.Config.Variables {
@@ -92,6 +112,37 @@ func (comp *Component) init() error {
 	comp.Context = &ctx
 
 	return nil
+}
+
+func (comp *Component) HasCompose() bool {
+	if comp.Context == nil {
+		return false
+	}
+	composeFile, found := comp.Context.find("COMPOSE_FILE")
+	return found && composeFile != ""
+}
+
+func (comp *Component) IsHostOnly() bool {
+	if comp.Config.ComposeFile().Disabled {
+		return true
+	}
+	if !comp.Config.ComposeFile().Present && comp.Template != nil && comp.Template.ComposeFile().Disabled {
+		return true
+	}
+	return false
+}
+
+func (comp *Component) requireCompose(action string) error {
+	if comp.HasCompose() {
+		return nil
+	}
+	if comp.IsHostOnly() {
+		return fmt.Errorf("component %q is host-only (compose_file: null); %s is unavailable", comp.Name, action)
+	}
+	if comp.Config.HostedIn != "" {
+		return fmt.Errorf("component %q has no compose_file (hosted in %q); %s is unavailable", comp.Name, comp.Config.HostedIn, action)
+	}
+	return fmt.Errorf("component %q has no compose_file; %s is unavailable", comp.Name, action)
 }
 
 func (comp *Component) execComposeToString(composeCommand []string, options *GlobalOptions) (string, error) {
@@ -168,6 +219,17 @@ func (comp *Component) IsCloned() (bool, error) {
 }
 
 func (comp *Component) Start(options *GlobalOptions) error {
+	if comp.IsHostOnly() {
+		return comp.requireCompose("start")
+	}
+	if !comp.HasCompose() {
+		host, err := comp.Workspace.ComponentByName(comp.Config.HostedIn)
+		if err != nil {
+			return err
+		}
+		return host.Start(options)
+	}
+
 	if comp.JustStarted {
 		return nil
 	}
@@ -212,6 +274,9 @@ func (comp *Component) startDependencies(params *GlobalOptions) error {
 		if !found {
 			return errors.New(fmt.Sprintf("dependency with name '%s' is not defined", depName))
 		}
+		if depComp.IsHostOnly() {
+			continue
+		}
 		err := depComp.Start(params)
 		if err != nil {
 			return err
@@ -222,6 +287,10 @@ func (comp *Component) startDependencies(params *GlobalOptions) error {
 }
 
 func (comp *Component) Stop(options *GlobalOptions) error {
+	if !comp.HasCompose() {
+		return nil
+	}
+
 	cloned, err := comp.IsCloned()
 	if err != nil {
 		return err
@@ -247,6 +316,10 @@ func (comp *Component) Stop(options *GlobalOptions) error {
 }
 
 func (comp *Component) Destroy(options *GlobalOptions) error {
+	if !comp.HasCompose() {
+		return nil
+	}
+
 	cloned, err := comp.IsCloned()
 	if err != nil {
 		return err
@@ -272,6 +345,10 @@ func (comp *Component) Destroy(options *GlobalOptions) error {
 }
 
 func (comp *Component) Restart(hard bool, options *GlobalOptions) error {
+	if err := comp.requireCompose("restart"); err != nil {
+		return err
+	}
+
 	var err error
 
 	if hard {
@@ -294,6 +371,10 @@ func (comp *Component) Restart(hard bool, options *GlobalOptions) error {
 }
 
 func (comp *Component) Compose(params *GlobalOptions) (int, error) {
+	if err := comp.requireCompose("compose"); err != nil {
+		return 1, err
+	}
+
 	cloned, err := comp.IsCloned()
 	if err != nil {
 		return 1, err
@@ -313,6 +394,10 @@ func (comp *Component) Compose(params *GlobalOptions) (int, error) {
 }
 
 func (comp *Component) Exec(options *GlobalOptions) (int, error) {
+	if err := comp.requireCompose("exec"); err != nil {
+		return 0, err
+	}
+
 	err := comp.Start(options)
 	if err != nil {
 		return 0, err
@@ -353,6 +438,10 @@ func (comp *Component) Exec(options *GlobalOptions) (int, error) {
 }
 
 func (comp *Component) Run(options *GlobalOptions) (int, error) {
+	if err := comp.requireCompose("run"); err != nil {
+		return 1, err
+	}
+
 	cloned, err := comp.IsCloned()
 	if err != nil {
 		return 1, err
@@ -406,6 +495,23 @@ func (comp *Component) Wrap(command []string, options *GlobalOptions) (int, erro
 	return code, nil
 }
 
+func (comp *Component) Launch(command []string, options *GlobalOptions) (int, error) {
+	svcPath, found := comp.Context.find("SVC_PATH")
+	if !found || svcPath == "" {
+		return 0, errors.New("path of component is not defined.Check workspace.yaml")
+	}
+
+	if options.Debug {
+		_, _ = Pc.Printf(">> (cd %s) %s\n", svcPath, strings.Join(command, " "))
+	}
+
+	if options.DryRun {
+		return 0, nil
+	}
+
+	return Pc.ExecInteractiveInDir(command, comp.Context.renderMapToEnv(), svcPath)
+}
+
 func (comp *Component) DumpVars() error {
 	for _, line := range comp.Context.renderMapToEnv() {
 		_, _ = Pc.Println(line)
@@ -415,14 +521,12 @@ func (comp *Component) DumpVars() error {
 }
 
 func (comp *Component) getAfterCloneHook() string {
-	if comp.Config.AfterCloneHook != "" {
-		return comp.Config.AfterCloneHook
+	if hook := comp.Config.ResolvedAfterCloneHook(); hook != "" {
+		return hook
 	}
-
 	if comp.Template != nil {
-		return comp.Template.AfterCloneHook
+		return comp.Template.ResolvedAfterCloneHook()
 	}
-
 	return ""
 }
 
@@ -475,10 +579,14 @@ func (comp *Component) Clone(options *GlobalOptions, noHook bool) error {
 	}
 }
 
-func (comp *Component) UpdateHooks(options *GlobalOptions, elcBinary string, scriptsFolder string) error {
+func (comp *Component) UpdateHooks(options *GlobalOptions, elcBinary string, scriptsFolder string, native bool) error {
 	svcPath, found := comp.Context.find("SVC_PATH")
 	if !found {
 		return errors.New("path of component is not defined.Check workspace.yaml")
+	}
+
+	if native {
+		return SetNativeHooksPath(options, svcPath, scriptsFolder)
 	}
 
 	return GenerateHookScripts(options, svcPath, elcBinary, scriptsFolder)

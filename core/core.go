@@ -3,6 +3,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"path"
 	"regexp"
 	"strings"
 )
@@ -21,6 +22,8 @@ type GlobalOptions struct {
 	Tag           string
 	DryRun        bool
 	NoTty         bool
+	Branch        string
+	Source        string
 }
 
 func contains(list []string, item string) bool {
@@ -86,5 +89,17 @@ func substVars(expr string, ctx *Context) (string, error) {
 		expr = re.ReplaceAllString(expr, value)
 	}
 
-	return expr, nil
+	return cleanConfigPath(expr), nil
+}
+
+func cleanConfigPath(p string) string {
+	if p == "" || !strings.HasPrefix(p, "/") {
+		return p
+	}
+	// Only normalize real path traversal / empty segments; keep trailing slashes
+	// and other absolute strings (e.g. API prefixes) intact.
+	if !strings.Contains(p, "/.") && !strings.Contains(p, "//") {
+		return p
+	}
+	return path.Clean(p)
 }

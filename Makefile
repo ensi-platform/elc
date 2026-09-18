@@ -11,7 +11,7 @@ deps:
 	go get
 
 install:
-	mkdir -p /opt/elc
+	sudo mkdir -p /opt/elc
 	sudo cp ./build/elc /opt/elc/elc-v${VERSION}
 	sudo ln -sf /opt/elc/elc-v${VERSION} /usr/local/bin/elc
 

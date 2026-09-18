@@ -76,8 +76,7 @@ func GenerateHookScripts(options *GlobalOptions, svcPath string, elcBinary strin
 		}
 	}
 
-	scriptsFolder = strings.ReplaceAll(scriptsFolder, "./", "")
-	scriptsFolder = strings.Trim(scriptsFolder, "/")
+	scriptsFolder = normalizeHooksFolder(scriptsFolder)
 
 	scriptsFolderPath := fmt.Sprintf("%s/%s", svcPath, scriptsFolder)
 	if Pc.FileExists(scriptsFolderPath) == false {
@@ -124,5 +123,48 @@ func GenerateHookScripts(options *GlobalOptions, svcPath string, elcBinary strin
 
 	_, _ = Pc.Println(fmt.Sprintf("\033[0;32mFiles in %s updated.\033[0m", hooksPath))
 
+	return nil
+}
+
+func normalizeHooksFolder(scriptsFolder string) string {
+	scriptsFolder = strings.ReplaceAll(scriptsFolder, "./", "")
+	return strings.Trim(scriptsFolder, "/")
+}
+
+// SetNativeHooksPath configures git core.hooksPath to scriptsFolder (relative to svcPath).
+func SetNativeHooksPath(options *GlobalOptions, svcPath string, scriptsFolder string) error {
+	gitPath := fmt.Sprintf("%s/.git", svcPath)
+	if !Pc.FileExists(gitPath) {
+		_, _ = Pc.Println(fmt.Sprintf("\033[0;33mRepository %s is not exists, skip hooks installation.\033[0m", gitPath))
+		return nil
+	}
+
+	scriptsFolder = normalizeHooksFolder(scriptsFolder)
+	scriptsFolderPath := fmt.Sprintf("%s/%s", svcPath, scriptsFolder)
+	if !Pc.FileExists(scriptsFolderPath) {
+		_, _ = Pc.Println(fmt.Sprintf("\033[0;33mFolder %s is not exists, skip hooks installation.\033[0m", scriptsFolderPath))
+		return nil
+	}
+
+	command := []string{"git", "-C", svcPath, "config", "core.hooksPath", scriptsFolder}
+	if options.Debug {
+		_, _ = Pc.Printf(">> %s\n", strings.Join(command, " "))
+	}
+	if options.DryRun {
+		return nil
+	}
+
+	code, out, err := Pc.ExecToString(command, nil)
+	if err != nil {
+		return err
+	}
+	if code != 0 {
+		if out != "" {
+			return fmt.Errorf("git config core.hooksPath failed: %s", strings.TrimSpace(out))
+		}
+		return fmt.Errorf("git config core.hooksPath failed with exit code %d", code)
+	}
+
+	_, _ = Pc.Println(fmt.Sprintf("\033[0;32mcore.hooksPath set to %s in %s.\033[0m", scriptsFolder, gitPath))
 	return nil
 }

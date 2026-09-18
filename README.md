@@ -47,6 +47,8 @@ elc_min_version: 0.2.3                          # минимальная вер�
 variables:                                      # глобальные переменные
   DEFAULT_APPS_ROOT: ${WORKSPACE_PATH}/apps
   APPS_ROOT: ${APPS_ROOT:-$DEFAULT_APPS_ROOT}
+  DEFAULT_WORKTREES_PATH: ${WORKSPACE_PATH}/worktrees
+  WORKTREES_PATH: ${WORKTREES_PATH:-$DEFAULT_WORKTREES_PATH}
   NETWORK: ${NETWORK:-example}
   BASE_DOMAIN: ${BASE_DOMAIN:-example.127.0.0.1.nip.io}
   GROUP_ID: ${GROUP_ID:-1000}
@@ -57,7 +59,10 @@ templates:                                      # шаблоны сервисо�
   fpm-8.1:                                      # название шаблона
     path: ${WORKSPACE_PATH}/templates/fpm-8.1   # путь до папки шаблона
     compose_file: ${TPL_PATH}/docker-compose.yml
-    after_clone_hook: ${TPL_PATH}/hooks/after-clone.sh
+    hooks:
+      after_clone: ${TPL_PATH}/hooks/after-clone.sh
+      worktree_create: ${TPL_PATH}/hooks/after-worktree.sh
+      worktree_remove: ${TPL_PATH}/hooks/before-worktree-remove.sh
     variables:                                  # переменные шаблона
       APP_IMAGE: fpm-8.1:latest
       BASE_IMAGE: php:8.1-fpm-alpine
@@ -84,6 +89,11 @@ services:                                       # список сервисов
       - backend
     extends: fpm-8.1
 
+  configs:                                      # host-only: без запуска контейнеров
+    path: ${WORKSPACE_PATH}/configs
+    repository: git@github.com:example/configs.git
+    compose_file: null                          # явно отключает compose / runtime-команды
+
 modules:                                       # список модулей (пакетов, которые сами не могут быть запущены)
   package1:
     path: /path/to/package/on/host
@@ -95,6 +105,10 @@ modules:                                       # список модулей (п
 
 **Сервис** - папка с docker-compose.yml файлом и дополнительными конфигами. В описании сервиса вы можете указать путь до папки,
 путь до файла docker-compose.yml и список переменных, которые будут доступны в файле docker-compose.yml.
+Если `compose_file` не указан, по умолчанию используется `${SVC_PATH}/docker-compose.yml` (или compose шаблона при `extends`).
+
+**Host-only компонент** - репозиторий без собственного runtime (например, набор конфигов). Задаётся через `compose_file: null`.
+Доступны `clone`, `wrap`, `launch`, `worktree`, `vars`, git hooks; недоступны `start`/`stop`/`restart`/`compose`/`exec`/`run`.
 
 **Переменная** - может быть задана на уровне сервиса, на уровне шаблона, глобально или через файл env.yaml. При запуске серивса в файле docker-compose.yml
 будут доступны все переменные в этой цепочке.  
@@ -160,6 +174,41 @@ elc start
 elc stop
 ```
 
+Если нужно параллельно работать над другой веткой сервиса, создайте git worktree.
+Инстанс появится в `$WORKTREES_PATH/<component>/<branch>` (по умолчанию
+`${WORKSPACE_PATH}/worktrees`, рядом с `apps`) и получит отдельные
+`APP_NAME` / `COMPOSE_PROJECT_NAME`, чтобы контейнеры и hostname не пересекались
+с основным clone.
+
+```bash
+elc worktree feature/foo
+elc wt feature/foo --source=HEAD
+elc worktree feature/foo --source=main
+elc start -b feature/foo
+elc launch -c app1 -b feature/foo --source=HEAD code .
+```
+
+Команды `start`, `stop`, `exec` и остальные определяют инстанс по текущей папке.
+Если вы не в папке worktree, укажите ветку флагом `--branch` / `-b`.
+Отсутствующий worktree для существующей ветки создаётся автоматически.
+Новую git-ветку можно создать только с `--source=<branch|HEAD>`.
+`elc launch` запускает программу на хосте в папке инстанса.
+
+```bash
+cd worktrees/app1/feature/foo
+elc start
+elc exec bash
+elc worktree remove
+```
+
+Список инстансов:
+
+```bash
+elc worktree list
+elc wt ls
+elc wt ls -c app1
+```
+
 Можно указать сразу несколько сервисов перечислив их имена или используя тэг
 ```bash
 elc start app1 app2 app3
@@ -208,6 +257,7 @@ elc -w project2 -c db psql
 
 ```bash
 elc set-hooks ./hooks-dir
+elc set-hooks --native .githooks
 ```
 
 Папка hooks-dir должна иметь следуюзую структуру:
@@ -222,7 +272,10 @@ elc set-hooks ./hooks-dir
       ├── test-code.sh
       └── var-dump-checker.sh
 ```
-Т.е. название подпапки - это название хука, а внутри сколько угодно скриптов, которые будут выполены при запуске хука. 
+Т.е. название подпапки - это название хука, а внутри сколько угодно скриптов, которые будут выполены при запуске хука.
+
+С `--native` elc не генерирует обёртки, а выставляет `git config core.hooksPath` на указанную папку
+(ожидаются обычные git-хуки: файлы `pre-commit`, `pre-push` и т.д. прямо в этой папке).
 
 **Прочее**
 

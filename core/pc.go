@@ -12,6 +12,7 @@ import (
 
 type PC interface {
 	ExecInteractive(command []string, env []string) (int, error)
+	ExecInteractiveInDir(command []string, env []string, dir string) (int, error)
 	ExecToString(command []string, env []string) (int, string, error)
 	Args() []string
 	Exit(code int)
@@ -24,6 +25,7 @@ type PC interface {
 	CreateFile(filename string) error
 	Chmod(filename string, mode os.FileMode) error
 	CreateDir(path string) error
+	MkdirAll(path string) error
 	WriteFile(filename string, data []byte, perm os.FileMode) error
 	Printf(format string, a ...interface{}) (n int, err error)
 	Println(a ...interface{}) (n int, err error)
@@ -35,11 +37,18 @@ var Pc PC
 type RealPC struct{}
 
 func (r *RealPC) ExecInteractive(command []string, env []string) (int, error) {
+	return r.ExecInteractiveInDir(command, env, "")
+}
+
+func (r *RealPC) ExecInteractiveInDir(command []string, env []string, dir string) (int, error) {
 	cmd := exec.Command(command[0], command[1:]...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	cmd.Env = append(os.Environ(), env...)
+	if dir != "" {
+		cmd.Dir = dir
+	}
 
 	err := cmd.Run()
 
@@ -126,6 +135,10 @@ func (r *RealPC) CreateDir(path string) error {
 	err := os.Mkdir(path, 0755)
 
 	return err
+}
+
+func (r *RealPC) MkdirAll(path string) error {
+	return os.MkdirAll(path, 0755)
 }
 
 func (r *RealPC) WriteFile(filename string, data []byte, perm os.FileMode) error {

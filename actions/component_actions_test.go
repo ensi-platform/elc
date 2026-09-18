@@ -4,6 +4,7 @@ import (
 	"github.com/ensi-platform/elc/core"
 	"github.com/golang/mock/gomock"
 	"path"
+	"strings"
 	"testing"
 )
 
@@ -36,10 +37,14 @@ func expectReadHomeConfig(mockPC *core.MockPC) {
 }
 
 func expectReadWorkspaceConfig(mockPC *core.MockPC, workspacePath string, config string, env string) {
+	expectReadWorkspaceConfigCwd(mockPC, workspacePath, path.Join(workspacePath, "apps/test"), config, env)
+}
+
+func expectReadWorkspaceConfigCwd(mockPC *core.MockPC, workspacePath string, cwd string, config string, env string) {
 	configPath := path.Join(workspacePath, "workspace.yaml")
 	envPath := path.Join(workspacePath, "env.yaml")
 	mockPC.EXPECT().Getwd().
-		Return(path.Join(workspacePath, "apps/test"), nil)
+		Return(cwd, nil)
 	mockPC.EXPECT().ReadFile(configPath).
 		Return([]byte(config), nil)
 
@@ -58,6 +63,57 @@ services:
   test:
     path: "${WORKSPACE_PATH}/apps/test"
 `
+
+func TestServiceStartPathWithParentDir(t *testing.T) {
+	mockPc := setupMockPc(t)
+	expectReadHomeConfig(mockPc)
+
+	config := `
+name: ensi
+variables:
+  APPS_ROOT: ${WORKSPACE_PATH}/foo/../apps
+services:
+  test:
+    path: "${APPS_ROOT}/../apps/test"
+    compose_file: ${SVC_PATH}/../test/docker-compose.yml
+`
+	expectReadWorkspaceConfig(mockPc, fakeWorkspacePath, config, "")
+	expectStartService(mockPc, path.Join(fakeWorkspacePath, "apps/test/docker-compose.yml"))
+
+	err := StartServiceAction(&core.GlobalOptions{}, []string{})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestServiceVarsPathWithParentDir(t *testing.T) {
+	mockPc := setupMockPc(t)
+	expectReadHomeConfig(mockPc)
+
+	config := `
+name: ensi
+variables:
+  APPS_ROOT: ${WORKSPACE_PATH}/foo/../apps
+services:
+  test:
+    path: "${APPS_ROOT}/test"
+`
+	expectReadWorkspaceConfig(mockPc, fakeWorkspacePath, config, "")
+
+	mockPc.EXPECT().Println("WORKSPACE_PATH=/tmp/workspaces/project1")
+	mockPc.EXPECT().Println("WORKSPACE_NAME=ensi")
+	mockPc.EXPECT().Println("APPS_ROOT=/tmp/workspaces/project1/apps")
+	mockPc.EXPECT().Println("WORKTREES_PATH=/tmp/workspaces/project1/worktrees")
+	mockPc.EXPECT().Println("APP_NAME=test")
+	mockPc.EXPECT().Println("COMPOSE_PROJECT_NAME=ensi-test")
+	mockPc.EXPECT().Println("SVC_PATH=/tmp/workspaces/project1/apps/test")
+	mockPc.EXPECT().Println("COMPOSE_FILE=/tmp/workspaces/project1/apps/test/docker-compose.yml")
+
+	err := PrintVarsAction(&core.GlobalOptions{}, []string{})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestServiceStart(t *testing.T) {
 	mockPc := setupMockPc(t)
@@ -488,6 +544,7 @@ func TestServiceVars(t *testing.T) {
 	mockPc.EXPECT().Println("V_GL_SIMPLE_VAR=vglobal-a")
 	mockPc.EXPECT().Println("V_GL_WITH_DEFAULT=default")
 	mockPc.EXPECT().Println("V_GL_WITH_DEFAULT_VAR=vglobal")
+	mockPc.EXPECT().Println("WORKTREES_PATH=/tmp/workspaces/project1/worktrees")
 
 	mockPc.EXPECT().Println("APP_NAME=test")
 	mockPc.EXPECT().Println("COMPOSE_PROJECT_NAME=ensi-test")
@@ -511,6 +568,7 @@ func TestServiceVarsWithTpl(t *testing.T) {
 	mockPc.EXPECT().Println("V_GL_SIMPLE_VAR=vglobal-a")
 	mockPc.EXPECT().Println("V_GL_WITH_DEFAULT=default")
 	mockPc.EXPECT().Println("V_GL_WITH_DEFAULT_VAR=vglobal")
+	mockPc.EXPECT().Println("WORKTREES_PATH=/tmp/workspaces/project1/worktrees")
 
 	mockPc.EXPECT().Println("V_IN_TPL=vintpl")
 
@@ -523,4 +581,109 @@ func TestServiceVarsWithTpl(t *testing.T) {
 	mockPc.EXPECT().Println("V_IN_SVC=vinsvc")
 
 	_ = PrintVarsAction(&core.GlobalOptions{}, []string{"test1"})
+}
+
+func TestHostOnlyStartActionReturnsError(t *testing.T) {
+	mockPc := setupMockPc(t)
+	expectReadHomeConfig(mockPc)
+
+	config := `
+name: ensi
+services:
+  configs:
+    path: "${WORKSPACE_PATH}/configs"
+    compose_file: null
+`
+	expectReadWorkspaceConfigCwd(mockPc, fakeWorkspacePath, path.Join(fakeWorkspacePath, "configs"), config, "")
+
+	err := StartServiceAction(&core.GlobalOptions{}, []string{})
+	if err == nil || !strings.Contains(err.Error(), "host-only") {
+		t.Fatalf("expected host-only error from action, got %v", err)
+	}
+}
+
+func TestHostOnlyInheritedFromTemplate(t *testing.T) {
+	mockPc := setupMockPc(t)
+	expectReadHomeConfig(mockPc)
+
+	config := `
+name: ensi
+templates:
+  repo-only:
+    path: ${WORKSPACE_PATH}/templates/repo-only
+    compose_file: null
+services:
+  configs:
+    path: "${WORKSPACE_PATH}/configs"
+    extends: repo-only
+`
+	expectReadWorkspaceConfigCwd(mockPc, fakeWorkspacePath, path.Join(fakeWorkspacePath, "configs"), config, "")
+
+	ws, err := core.GetWorkspaceConfig("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	comp, err := ws.ComponentByName("configs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !comp.IsHostOnly() {
+		t.Fatal("expected host-only inherited from template")
+	}
+	if comp.HasCompose() {
+		t.Fatal("expected no COMPOSE_FILE when template has compose_file: null")
+	}
+}
+
+func TestTagAndBranchRejected(t *testing.T) {
+	mockPc := setupMockPc(t)
+	expectReadHomeConfig(mockPc)
+	expectReadWorkspaceConfig(mockPc, fakeWorkspacePath, workspaceConfig, "")
+
+	err := StartServiceAction(&core.GlobalOptions{Tag: "backend", Branch: "feat"}, []string{})
+	if err == nil || !strings.Contains(err.Error(), "--tag and --branch") {
+		t.Fatalf("expected tag/branch conflict, got %v", err)
+	}
+}
+
+func TestHostOnlyWrapAllowed(t *testing.T) {
+	mockPc := setupMockPc(t)
+	expectReadHomeConfig(mockPc)
+
+	config := `
+name: ensi
+services:
+  configs:
+    path: "${WORKSPACE_PATH}/configs"
+    repository: git@github.com:example/configs.git
+    compose_file: null
+`
+	expectReadWorkspaceConfigCwd(mockPc, fakeWorkspacePath, path.Join(fakeWorkspacePath, "configs"), config, "")
+	mockPc.EXPECT().ExecInteractive([]string{"ls"}, gomock.Any()).Return(0, nil)
+
+	err := WrapCommandAction(&core.GlobalOptions{}, []string{"ls"})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestHostOnlyLaunchAllowed(t *testing.T) {
+	mockPc := setupMockPc(t)
+	expectReadHomeConfig(mockPc)
+
+	config := `
+name: ensi
+services:
+  configs:
+    path: "${WORKSPACE_PATH}/configs"
+    repository: git@github.com:example/configs.git
+    compose_file: null
+`
+	expectReadWorkspaceConfigCwd(mockPc, fakeWorkspacePath, path.Join(fakeWorkspacePath, "configs"), config, "")
+	mockPc.EXPECT().ExecInteractiveInDir([]string{"code", "."}, gomock.Any(), path.Join(fakeWorkspacePath, "configs")).Return(0, nil)
+
+	err := LaunchAction(&core.GlobalOptions{}, []string{"code", "."})
+	if err != nil {
+		t.Fatal(err)
+	}
 }
