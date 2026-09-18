@@ -89,6 +89,11 @@ services:                                       # список сервисов
       - backend
     extends: fpm-8.1
 
+  configs:                                      # host-only: без запуска контейнеров
+    path: ${WORKSPACE_PATH}/configs
+    repository: git@github.com:example/configs.git
+    compose_file: null                          # явно отключает compose / runtime-команды
+
 modules:                                       # список модулей (пакетов, которые сами не могут быть запущены)
   package1:
     path: /path/to/package/on/host
@@ -100,6 +105,10 @@ modules:                                       # список модулей (п
 
 **Сервис** - папка с docker-compose.yml файлом и дополнительными конфигами. В описании сервиса вы можете указать путь до папки,
 путь до файла docker-compose.yml и список переменных, которые будут доступны в файле docker-compose.yml.
+Если `compose_file` не указан, по умолчанию используется `${SVC_PATH}/docker-compose.yml` (или compose шаблона при `extends`).
+
+**Host-only компонент** - репозиторий без собственного runtime (например, набор конфигов). Задаётся через `compose_file: null`.
+Доступны `clone`, `wrap`, `launch`, `worktree`, `vars`, git hooks; недоступны `start`/`stop`/`restart`/`compose`/`exec`/`run`.
 
 **Переменная** - может быть задана на уровне сервиса, на уровне шаблона, глобально или через файл env.yaml. При запуске серивса в файле docker-compose.yml
 будут доступны все переменные в этой цепочке.  
@@ -248,6 +257,7 @@ elc -w project2 -c db psql
 
 ```bash
 elc set-hooks ./hooks-dir
+elc set-hooks --native .githooks
 ```
 
 Папка hooks-dir должна иметь следуюзую структуру:
@@ -262,7 +272,10 @@ elc set-hooks ./hooks-dir
       ├── test-code.sh
       └── var-dump-checker.sh
 ```
-Т.е. название подпапки - это название хука, а внутри сколько угодно скриптов, которые будут выполены при запуске хука. 
+Т.е. название подпапки - это название хука, а внутри сколько угодно скриптов, которые будут выполены при запуске хука.
+
+С `--native` elc не генерирует обёртки, а выставляет `git config core.hooksPath` на указанную папку
+(ожидаются обычные git-хуки: файлы `pre-commit`, `pre-push` и т.д. прямо в этой папке).
 
 **Прочее**
 

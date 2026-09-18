@@ -194,6 +194,8 @@ start [OPTIONS] [SERVICES]
 Технически просто выполняет `docker compose up` вычислив все переменные и сформировав параметры запуска.
 Перед запуском текущего сервиса рекурсивно запускает его зависимости для текущего режима.
 
+Для host-only компонентов (`compose_file: null`) команда недоступна.
+
 Опции:
 * `--force` - запустить зависимости сервиса даже если сервис уже запущен
 * `--mode=MODE` - режим запуска зависимостей сервиса
@@ -332,7 +334,7 @@ elc compose --component=other-service logs
 
 ## set-hooks
 ```
-elc set-hooks <SCRIPTS_DIR>
+elc set-hooks [OPTIONS] <SCRIPTS_DIR>
 ```
 Сгенерировать скрипты для запуска git хуков.  
 Смотрит на то какие скрипты лежат в папке `SCRIPTS_DIR` и генерирует соответствующие скрипты в папке `.git/hooks`
@@ -340,6 +342,10 @@ elc set-hooks <SCRIPTS_DIR>
 ```
 scripts-dir/pre-commit/ => .git/hooks/pre-commit
 ```
+
+Опции:
+* `--native` - вместо генерации обёрток в `.git/hooks` прописать в `.git/config` `core.hooksPath=<SCRIPTS_DIR>`.
+  В этом режиме git ожидает нативные хуки прямо в `SCRIPTS_DIR` (файлы `pre-commit`, `pre-push`, …).
 
 Примеры:
 ```

@@ -332,15 +332,17 @@ func NewServiceRunCommand(parentCommand *cobra.Command) {
 }
 
 func NewServiceSetHooksCommand(parentCommand *cobra.Command) {
+	var native bool
 	var command = &cobra.Command{
 		Use:   "set-hooks [HOOKS_DIR]",
 		Short: "Install hooks from specified folder to .git/hooks",
-		Long:  "Install hooks from specified folder to .git/hooks.\nHOOKS_PATH must contain subdirectories with names as git hooks, eg. 'pre-commit'.\nOne subdirectory can contain one or many scripts with .sh extension.\nEvery script will be wrapped with 'elc --tag=hook' command.",
+		Long:  "Install hooks from specified folder to .git/hooks.\nHOOKS_PATH must contain subdirectories with names as git hooks, eg. 'pre-commit'.\nOne subdirectory can contain one or many scripts with .sh extension.\nEvery script will be wrapped with 'elc --tag=hook' command.\nWith --native, sets git core.hooksPath to HOOKS_DIR instead of generating wrappers in .git/hooks.",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return actions.SetGitHooksAction(&globalOptions, args[0], os.Args[0])
+			return actions.SetGitHooksAction(&globalOptions, args[0], os.Args[0], native)
 		},
 	}
+	command.Flags().BoolVar(&native, "native", false, "set core.hooksPath to HOOKS_DIR instead of generating .git/hooks wrappers")
 	parentCommand.AddCommand(command)
 }
 

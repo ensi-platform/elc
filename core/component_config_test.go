@@ -46,6 +46,32 @@ after_clone_hook: legacy.sh
 	}
 }
 
+func TestOptionalComposeFileNullVsOmit(t *testing.T) {
+	var omitted ComponentConfig
+	if err := yaml.Unmarshal([]byte("path: /x\n"), &omitted); err != nil {
+		t.Fatal(err)
+	}
+	if cf := omitted.ComposeFile(); cf.Present || cf.Disabled {
+		t.Fatalf("omitted compose_file should be unset, got %+v", cf)
+	}
+
+	var disabled ComponentConfig
+	if err := yaml.Unmarshal([]byte("path: /x\ncompose_file: null\n"), &disabled); err != nil {
+		t.Fatal(err)
+	}
+	if cf := disabled.ComposeFile(); !cf.Present || !cf.Disabled {
+		t.Fatalf("compose_file: null should disable, got %+v", cf)
+	}
+
+	var path ComponentConfig
+	if err := yaml.Unmarshal([]byte("compose_file: ${SVC_PATH}/docker-compose.yml\n"), &path); err != nil {
+		t.Fatal(err)
+	}
+	if cf := path.ComposeFile(); !cf.Present || cf.Disabled || cf.Value != "${SVC_PATH}/docker-compose.yml" {
+		t.Fatalf("unexpected compose_file: %+v", cf)
+	}
+}
+
 func TestComponentHooksMerge(t *testing.T) {
 	base := ComponentConfig{
 		Hooks: ComponentHooks{AfterClone: "base-clone.sh", WorktreeCreate: "base-wt.sh"},

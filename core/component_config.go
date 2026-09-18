@@ -1,5 +1,9 @@
 package core
 
+import (
+	yaml "go.yaml.in/yaml/v3"
+)
+
 type ModeList []string
 
 func (s ModeList) contains(v string) bool {
@@ -30,24 +34,47 @@ func (h ComponentHooks) merge(h2 ComponentHooks) ComponentHooks {
 	return h
 }
 
+// OptionalComposeFile is the resolved view of compose_file.
+// Omitted → default path; null → host-only; string → explicit path.
+type OptionalComposeFile struct {
+	Present  bool
+	Disabled bool
+	Value    string
+}
+
+func parseComposeFileNode(node yaml.Node) OptionalComposeFile {
+	if node.Kind == 0 {
+		return OptionalComposeFile{}
+	}
+	if node.ShortTag() == "!!null" {
+		return OptionalComposeFile{Present: true, Disabled: true}
+	}
+	return OptionalComposeFile{Present: true, Value: node.Value}
+}
+
 type ComponentConfig struct {
-	Alias        string              `yaml:"alias"`
-	ComposeFile  string              `yaml:"compose_file"`
-	Dependencies map[string]ModeList `yaml:"dependencies"`
-	ExecPath     string              `yaml:"exec_path"`
-	Extends      string              `yaml:"extends"`
-	HostedIn     string              `yaml:"hosted_in"`
-	Hostname     string              `yaml:"hostname"`
-	IsTemplate   bool                `yaml:"is_template"`
-	Path         string              `yaml:"path"`
-	Replace      bool                `yaml:"replace"`
-	Variables    OrderedVars         `yaml:"variables"`
-	Repository   string              `yaml:"repository"`
-	Tags         []string            `yaml:"tags"`
-	Hooks        ComponentHooks      `yaml:"hooks"`
+	Alias string `yaml:"alias"`
+	// ComposeFileNode keeps omitted vs null vs string distinguishable.
+	ComposeFileNode yaml.Node           `yaml:"compose_file"`
+	Dependencies    map[string]ModeList `yaml:"dependencies"`
+	ExecPath        string              `yaml:"exec_path"`
+	Extends         string              `yaml:"extends"`
+	HostedIn        string              `yaml:"hosted_in"`
+	Hostname        string              `yaml:"hostname"`
+	IsTemplate      bool                `yaml:"is_template"`
+	Path            string              `yaml:"path"`
+	Replace         bool                `yaml:"replace"`
+	Variables       OrderedVars         `yaml:"variables"`
+	Repository      string              `yaml:"repository"`
+	Tags            []string            `yaml:"tags"`
+	Hooks           ComponentHooks      `yaml:"hooks"`
 
 	// deprecated: use hooks.after_clone
 	AfterCloneHook string `yaml:"after_clone_hook"`
+}
+
+func (cc *ComponentConfig) ComposeFile() OptionalComposeFile {
+	return parseComposeFileNode(cc.ComposeFileNode)
 }
 
 func (cc *ComponentConfig) ResolvedAfterCloneHook() string {
@@ -65,8 +92,8 @@ func (cc ComponentConfig) merge(cc2 ComponentConfig) ComponentConfig {
 	if cc2.Path != "" {
 		cc.Path = cc2.Path
 	}
-	if cc2.ComposeFile != "" {
-		cc.ComposeFile = cc2.ComposeFile
+	if cc2.ComposeFileNode.Kind != 0 {
+		cc.ComposeFileNode = cc2.ComposeFileNode
 	}
 	if cc2.Extends != "" {
 		cc.Extends = cc2.Extends

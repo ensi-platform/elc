@@ -320,11 +320,13 @@ func (comp *Component) RemoveWorktree(options *GlobalOptions, branch string, for
 		_, _ = Pc.Printf("warning: hooks.worktree_remove failed: %s\n", err)
 	}
 
-	if _, err := instance.execComposeInteractive([]string{"down"}, options); err != nil {
-		if !force {
-			return err
+	if instance.HasCompose() {
+		if _, err := instance.execComposeInteractive([]string{"down"}, options); err != nil {
+			if !force {
+				return err
+			}
+			_, _ = Pc.Printf("warning: failed to destroy worktree containers: %s\n", err)
 		}
-		_, _ = Pc.Printf("warning: failed to destroy worktree containers: %s\n", err)
 	}
 
 	removeCmd := gitC(mainPath, "worktree", "remove", dest)

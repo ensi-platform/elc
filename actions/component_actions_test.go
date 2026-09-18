@@ -4,6 +4,7 @@ import (
 	"github.com/ensi-platform/elc/core"
 	"github.com/golang/mock/gomock"
 	"path"
+	"strings"
 	"testing"
 )
 
@@ -580,4 +581,77 @@ func TestServiceVarsWithTpl(t *testing.T) {
 	mockPc.EXPECT().Println("V_IN_SVC=vinsvc")
 
 	_ = PrintVarsAction(&core.GlobalOptions{}, []string{"test1"})
+}
+
+func TestHostOnlyStartRejected(t *testing.T) {
+	mockPc := setupMockPc(t)
+	expectReadHomeConfig(mockPc)
+
+	config := `
+name: ensi
+services:
+  configs:
+    path: "${WORKSPACE_PATH}/configs"
+    repository: git@github.com:example/configs.git
+    compose_file: null
+`
+	expectReadWorkspaceConfigCwd(mockPc, fakeWorkspacePath, path.Join(fakeWorkspacePath, "configs"), config, "")
+
+	ws, err := core.GetWorkspaceConfig("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	comp, err := ws.ComponentByName("configs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !comp.IsHostOnly() {
+		t.Fatal("expected host-only component")
+	}
+	err = comp.Start(&core.GlobalOptions{})
+	if err == nil || !strings.Contains(err.Error(), "host-only") {
+		t.Fatalf("expected host-only error, got %v", err)
+	}
+}
+
+func TestHostOnlyWrapAllowed(t *testing.T) {
+	mockPc := setupMockPc(t)
+	expectReadHomeConfig(mockPc)
+
+	config := `
+name: ensi
+services:
+  configs:
+    path: "${WORKSPACE_PATH}/configs"
+    repository: git@github.com:example/configs.git
+    compose_file: null
+`
+	expectReadWorkspaceConfigCwd(mockPc, fakeWorkspacePath, path.Join(fakeWorkspacePath, "configs"), config, "")
+	mockPc.EXPECT().ExecInteractive([]string{"ls"}, gomock.Any()).Return(0, nil)
+
+	err := WrapCommandAction(&core.GlobalOptions{}, []string{"ls"})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestHostOnlyLaunchAllowed(t *testing.T) {
+	mockPc := setupMockPc(t)
+	expectReadHomeConfig(mockPc)
+
+	config := `
+name: ensi
+services:
+  configs:
+    path: "${WORKSPACE_PATH}/configs"
+    repository: git@github.com:example/configs.git
+    compose_file: null
+`
+	expectReadWorkspaceConfigCwd(mockPc, fakeWorkspacePath, path.Join(fakeWorkspacePath, "configs"), config, "")
+	mockPc.EXPECT().ExecInteractiveInDir([]string{"code", "."}, gomock.Any(), path.Join(fakeWorkspacePath, "configs")).Return(0, nil)
+
+	err := LaunchAction(&core.GlobalOptions{}, []string{"code", "."})
+	if err != nil {
+		t.Fatal(err)
+	}
 }

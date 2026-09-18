@@ -314,7 +314,7 @@ func RunAction(options *core.GlobalOptions) error {
 	return nil
 }
 
-func SetGitHooksAction(options *core.GlobalOptions, scriptsFolder string, elcBinary string) error {
+func SetGitHooksAction(options *core.GlobalOptions, scriptsFolder string, elcBinary string, native bool) error {
 	ws, err := core.GetWorkspaceConfig(options.WorkspaceName)
 	if err != nil {
 		return err
@@ -331,7 +331,7 @@ func SetGitHooksAction(options *core.GlobalOptions, scriptsFolder string, elcBin
 			return err
 		}
 
-		err = comp.UpdateHooks(options, elcBinary, scriptsFolder)
+		err = comp.UpdateHooks(options, elcBinary, scriptsFolder, native)
 		if err != nil {
 			fmt.Printf("Error: %s\n", err)
 		}
