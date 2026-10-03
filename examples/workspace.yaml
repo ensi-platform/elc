@@ -1,0 +1,107 @@
+name: elc-examples
+elc_min_version: 0.1.4
+variables:
+  DEFAULT_APPS_ROOT: ${WORKSPACE_PATH}/apps
+  APPS_ROOT: ${APPS_ROOT:-$DEFAULT_APPS_ROOT}
+  NETWORK: ${NETWORK:-example}
+  BASE_DOMAIN: ${BASE_DOMAIN:-example.127.0.0.1.nip.io}
+  GROUP_ID: ${GROUP_ID:-1000}
+  USER_ID: ${USER_ID:-1000}
+  HOME_PATH: ${WORKSPACE_PATH}/home
+
+  PHP_APP1_HOST: php1.${BASE_DOMAIN}
+  PHP_APP1_PATH: ${APPS_ROOT}/php-app1
+  PHP_APP1_MOUNT_PATH: /var/www/php-app1
+
+  PHP_APP2_HOST: php2.${BASE_DOMAIN}
+  PHP_APP2_PATH: ${APPS_ROOT}/php-app2
+  PHP_APP2_MOUNT_PATH: /var/www/php-app2
+
+templates:
+  go-dev:
+    path: ${WORKSPACE_PATH}/templates/go-dev
+    hooks:
+      after_clone: ${TPL_PATH}/hooks/after-clone.sh
+      worktree_create: ${TPL_PATH}/hooks/after-worktree.sh
+      worktree_remove: ${TPL_PATH}/hooks/before-worktree-remove.sh
+    variables:
+      APP_IMAGE: cosmtrek/air:v1.62.0
+      APP_PORT: "8080"
+
+  python-dev:
+    path: ${WORKSPACE_PATH}/templates/python-dev
+    variables:
+      APP_IMAGE: python:3.13-slim
+      APP_PORT: "8080"
+
+  next-dev:
+    path: ${WORKSPACE_PATH}/templates/next-dev
+    variables:
+      APP_IMAGE: node:22-alpine
+      APP_PORT: "3000"
+
+  swoole-dev:
+    path: ${WORKSPACE_PATH}/templates/swoole-dev
+    variables:
+      # Built from templates/swoole-dev: PHP+Swoole tooling image with air for reload.
+      APP_IMAGE: elc-examples/swoole-air:8.5
+      APP_PORT: "8080"
+
+services:
+  proxy:
+    path: ${WORKSPACE_PATH}/infra/proxy
+    variables:
+      APP_IMAGE: nginxproxy/nginx-proxy:1.11-alpine
+
+  # One shared PHP-FPM for two apps (modules below); code mounted from host.
+  fpm:
+    path: ${WORKSPACE_PATH}/infra/fpm
+    variables:
+      BASE_IMAGE: php:8.5-fpm-alpine
+      NGINX_IMAGE: nginx:1.28-alpine
+      APP1_HOST: ${PHP_APP1_HOST}
+      APP1_PATH: ${PHP_APP1_PATH}
+      APP1_MOUNT_PATH: ${PHP_APP1_MOUNT_PATH}
+      APP2_HOST: ${PHP_APP2_HOST}
+      APP2_PATH: ${PHP_APP2_PATH}
+      APP2_MOUNT_PATH: ${PHP_APP2_MOUNT_PATH}
+    dependencies:
+      proxy: [default]
+
+  # PHP+Swoole tooling image; source bind-mounted from host, restarted via dev.sh.
+  swoole-api:
+    path: ${APPS_ROOT}/swoole-api
+    extends: swoole-dev
+    dependencies:
+      proxy: [default]
+
+  # Go tooling image + air; source bind-mounted from host.
+  go-api:
+    path: ${APPS_ROOT}/go-api
+    extends: go-dev
+    dependencies:
+      proxy: [default]
+
+  # Python tooling image + uvicorn --reload; source bind-mounted from host.
+  python-api:
+    path: ${APPS_ROOT}/python-api
+    extends: python-dev
+    dependencies:
+      proxy: [default]
+
+  # Node tooling image + next dev; source bind-mounted from host.
+  next-web:
+    path: ${APPS_ROOT}/next-web
+    extends: next-dev
+    dependencies:
+      proxy: [default]
+
+modules:
+  php-app1:
+    path: ${PHP_APP1_PATH}
+    hosted_in: fpm
+    exec_path: ${PHP_APP1_MOUNT_PATH}
+  php-app2:
+    path: ${PHP_APP2_PATH}
+    hosted_in: fpm
+    exec_path: ${PHP_APP2_MOUNT_PATH}

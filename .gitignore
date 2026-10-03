@@ -4,6 +4,7 @@ dev
 go.sum
 example/env.yaml
 *.out
+e2e/.image-cache/
 
 # GSD planning artifacts
 .planning/**

@@ -1,6 +1,6 @@
 VERSION := $(shell ./version.sh)
 
-.PHONY: all build gen deps test coverage
+.PHONY: all build gen deps test coverage e2e
 
 all: build
 
@@ -21,4 +21,7 @@ test:
 coverage:
 	go test -coverprofile=coverage.out -v ./...
 	go tool cover -html=coverage.out
+
+e2e:
+	./e2e/run.sh
 

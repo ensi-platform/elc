@@ -624,3 +624,61 @@ services:
 		t.Fatal(err)
 	}
 }
+
+func TestServiceStartFromExternalWorktreeCwd(t *testing.T) {
+	mockPc := setupMockPc(t)
+	expectReadHomeConfig(mockPc)
+
+	cwd := "/tmp/external/test-feat"
+	mainPath := path.Join(fakeWorkspacePath, "apps/test")
+	expectReadWorkspaceConfigCwd(mockPc, fakeWorkspacePath, cwd, workspaceConfig, "")
+
+	mockPc.EXPECT().ReadFile(path.Join(cwd, ".git")).
+		Return([]byte("gitdir: "+mainPath+"/.git/worktrees/feat\n"), nil)
+	mockPc.EXPECT().ExecToString([]string{"git", "-C", cwd, "rev-parse", "--show-toplevel"}, nil).
+		Return(0, cwd+"\n", nil)
+	mockPc.EXPECT().ExecToString([]string{"git", "-C", cwd, "rev-parse", "--git-common-dir"}, nil).
+		Return(0, mainPath+"/.git\n", nil)
+	mockPc.EXPECT().ExecToString([]string{"git", "-C", cwd, "rev-parse", "--abbrev-ref", "HEAD"}, nil).
+		Return(0, "feat\n", nil)
+	mockPc.EXPECT().FileExists(cwd).Return(true)
+	expectStartService(mockPc, path.Join(cwd, "docker-compose.yml"))
+
+	err := StartServiceAction(&core.GlobalOptions{}, []string{})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestServiceVarsExternalWorktree(t *testing.T) {
+	mockPc := setupMockPc(t)
+	expectReadHomeConfig(mockPc)
+
+	cwd := "/tmp/external/test-feat"
+	mainPath := path.Join(fakeWorkspacePath, "apps/test")
+	expectReadWorkspaceConfigCwd(mockPc, fakeWorkspacePath, cwd, workspaceConfig, "")
+
+	mockPc.EXPECT().ReadFile(path.Join(cwd, ".git")).
+		Return([]byte("gitdir: "+mainPath+"/.git/worktrees/feat\n"), nil)
+	mockPc.EXPECT().ExecToString([]string{"git", "-C", cwd, "rev-parse", "--show-toplevel"}, nil).
+		Return(0, cwd+"\n", nil)
+	mockPc.EXPECT().ExecToString([]string{"git", "-C", cwd, "rev-parse", "--git-common-dir"}, nil).
+		Return(0, mainPath+"/.git\n", nil)
+	mockPc.EXPECT().ExecToString([]string{"git", "-C", cwd, "rev-parse", "--abbrev-ref", "HEAD"}, nil).
+		Return(0, "feat\n", nil)
+	mockPc.EXPECT().FileExists(cwd).Return(true)
+
+	mockPc.EXPECT().Println("WORKSPACE_PATH=/tmp/workspaces/project1")
+	mockPc.EXPECT().Println("WORKSPACE_NAME=ensi")
+	mockPc.EXPECT().Println("WORKTREES_PATH=/tmp/workspaces/project1/worktrees")
+	mockPc.EXPECT().Println("GIT_BRANCH=feat")
+	mockPc.EXPECT().Println("APP_NAME=test-feat")
+	mockPc.EXPECT().Println("COMPOSE_PROJECT_NAME=ensi-test-feat")
+	mockPc.EXPECT().Println("SVC_PATH=/tmp/external/test-feat")
+	mockPc.EXPECT().Println("COMPOSE_FILE=/tmp/external/test-feat/docker-compose.yml")
+
+	err := PrintVarsAction(&core.GlobalOptions{}, []string{})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
