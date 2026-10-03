@@ -265,7 +265,7 @@ func TestServiceStartByNames(t *testing.T) {
 func TestServiceStartByNamesSharedDependencyStartsOnce(t *testing.T) {
 	mockPc := setupMockPc(t)
 	expectReadHomeConfig(mockPc)
-	expectReadWorkspaceConfig(mockPc, fakeWorkspacePath, workspaceConfigWithSharedDeps, "")
+	expectReadWorkspaceConfigCwd(mockPc, fakeWorkspacePath, path.Join(fakeWorkspacePath, "apps/api"), workspaceConfigWithSharedDeps, "")
 
 	expectStartService(mockPc, path.Join(fakeWorkspacePath, "apps/dep/docker-compose.yml"))
 	expectStartService(mockPc, path.Join(fakeWorkspacePath, "apps/api/docker-compose.yml"))

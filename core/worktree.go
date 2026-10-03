@@ -126,11 +126,17 @@ func (comp *Component) gitEnv() []string {
 }
 
 func (comp *Component) ForWorktree(branch string) (*Component, error) {
+	return comp.ForWorktreeAt(branch, WorktreePath(comp.Workspace, comp.Name, branch))
+}
+
+func (comp *Component) ForWorktreeAt(branch, dest string) (*Component, error) {
 	if err := ValidateBranchName(branch); err != nil {
 		return nil, err
 	}
+	if dest == "" {
+		return nil, errors.New("worktree path is required")
+	}
 
-	dest := WorktreePath(comp.Workspace, comp.Name, branch)
 	cfg := *comp.Config
 	cfg.Path = dest
 
@@ -141,6 +147,70 @@ func (comp *Component) ForWorktree(branch string) (*Component, error) {
 	}
 
 	return clone, nil
+}
+
+type gitWorktreeInfo struct {
+	TopLevel string
+	MainPath string
+	Branch   string
+	Linked   bool
+}
+
+func absFromCwd(cwd, p string) string {
+	p = strings.TrimSpace(p)
+	if p == "" {
+		return ""
+	}
+	if path.IsAbs(p) {
+		return path.Clean(p)
+	}
+	return path.Clean(path.Join(cwd, p))
+}
+
+func inspectGitWorktree(cwd string) (gitWorktreeInfo, bool) {
+	if cwd == "" {
+		return gitWorktreeInfo{}, false
+	}
+
+	code, topLevel, err := Pc.ExecToString([]string{"git", "-C", cwd, "rev-parse", "--show-toplevel"}, nil)
+	if err != nil || code != 0 {
+		return gitWorktreeInfo{}, false
+	}
+	topLevel = strings.TrimSpace(topLevel)
+	if topLevel == "" {
+		return gitWorktreeInfo{}, false
+	}
+
+	code, commonDir, err := Pc.ExecToString([]string{"git", "-C", cwd, "rev-parse", "--git-common-dir"}, nil)
+	if err != nil || code != 0 {
+		return gitWorktreeInfo{}, false
+	}
+	commonDir = absFromCwd(cwd, commonDir)
+	if commonDir == "" {
+		return gitWorktreeInfo{}, false
+	}
+	mainPath := path.Clean(path.Dir(commonDir))
+	topLevel = path.Clean(topLevel)
+	linked := topLevel != mainPath
+	if !linked {
+		return gitWorktreeInfo{TopLevel: topLevel, MainPath: mainPath, Linked: false}, true
+	}
+
+	code, branch, err := Pc.ExecToString([]string{"git", "-C", cwd, "rev-parse", "--abbrev-ref", "HEAD"}, nil)
+	if err != nil || code != 0 {
+		return gitWorktreeInfo{}, false
+	}
+	branch = strings.TrimSpace(branch)
+	if branch == "" || branch == "HEAD" {
+		return gitWorktreeInfo{}, false
+	}
+
+	return gitWorktreeInfo{
+		TopLevel: topLevel,
+		MainPath: mainPath,
+		Branch:   branch,
+		Linked:   true,
+	}, true
 }
 
 func (comp *Component) getWorktreeCreateHook() string {

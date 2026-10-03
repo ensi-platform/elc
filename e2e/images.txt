@@ -1,0 +1,5 @@
+# Images pulled by e2e smoke (examples workspace: fpm + proxy).
+# One image per line; comments and blank lines are ignored.
+php:8.5-fpm-alpine
+nginx:1.28-alpine
+nginxproxy/nginx-proxy:1.11-alpine

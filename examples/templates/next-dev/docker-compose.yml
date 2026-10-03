@@ -1,0 +1,32 @@
+services:
+  app:
+    image: $APP_IMAGE
+    hostname: "$APP_NAME.$BASE_DOMAIN"
+    working_dir: /app
+    command:
+      - sh
+      - -c
+      - npm install && npm run dev -- -H 0.0.0.0 -p ${APP_PORT}
+    environment:
+      APP_PORT: "$APP_PORT"
+      VIRTUAL_HOST: "$APP_NAME.$BASE_DOMAIN"
+      VIRTUAL_PORT: "$APP_PORT"
+      HOME: /tmp/home
+      npm_config_cache: /tmp/home/npm-cache
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - "$SVC_PATH:/app"
+      - "$HOME_PATH:/tmp/home"
+      # Keep Linux node_modules inside the container, not on the host bind mount.
+      - next_web_node_modules:/app/node_modules
+    networks:
+      - dev
+
+volumes:
+  next_web_node_modules:
+
+networks:
+  dev:
+    external: true
+    name: $NETWORK

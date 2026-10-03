@@ -2,6 +2,7 @@ package actions
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/ensi-platform/elc/core"
 )
@@ -58,17 +59,33 @@ func LaunchAction(options *core.GlobalOptions, command []string) error {
 	}
 
 	branch := options.Branch
+	cwdWorktreePath := ""
 	if branch == "" {
 		cwdName, cwdBranch, matchErr := ws.MatchCwd()
 		if matchErr == nil && cwdName == comp.Name {
 			branch = cwdBranch
+			cwdWorktreePath = ws.CwdWorktreePath()
 		}
 	}
 
 	if branch != "" {
-		comp, err = comp.EnsureWorktree(options, branch, false)
-		if err != nil {
-			return err
+		if cwdWorktreePath != "" {
+			comp, err = comp.ForWorktreeAt(branch, cwdWorktreePath)
+			if err != nil {
+				return err
+			}
+			cloned, err := comp.IsCloned()
+			if err != nil {
+				return err
+			}
+			if !cloned {
+				return errors.New(fmt.Sprintf("worktree path %s does not exist", cwdWorktreePath))
+			}
+		} else {
+			comp, err = comp.EnsureWorktree(options, branch, false)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

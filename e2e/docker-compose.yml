@@ -1,0 +1,18 @@
+services:
+  e2e:
+    build: .
+    privileged: true
+    environment:
+      DOCKER_TLS_CERTDIR: ""
+    volumes:
+      - ../build/elc:/usr/local/bin/elc:ro
+      - ../examples:/examples:ro
+      - ./tests:/e2e/tests:ro
+      - ./.image-cache:/image-cache:ro
+    working_dir: /tmp
+    healthcheck:
+      test: ["CMD", "docker", "info"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 5s

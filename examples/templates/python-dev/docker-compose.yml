@@ -1,0 +1,25 @@
+services:
+  app:
+    image: $APP_IMAGE
+    hostname: "$APP_NAME.$BASE_DOMAIN"
+    working_dir: /app
+    command:
+      - sh
+      - -c
+      - pip install --no-cache-dir -r requirements.txt && uvicorn main:app --host 0.0.0.0 --port ${APP_PORT} --reload
+    environment:
+      APP_PORT: "$APP_PORT"
+      VIRTUAL_HOST: "$APP_NAME.$BASE_DOMAIN"
+      VIRTUAL_PORT: "$APP_PORT"
+      HOME: /tmp/home
+      PIP_CACHE_DIR: /tmp/home/pip-cache
+    volumes:
+      - "$SVC_PATH:/app"
+      - "$HOME_PATH:/tmp/home"
+    networks:
+      - dev
+
+networks:
+  dev:
+    external: true
+    name: $NETWORK

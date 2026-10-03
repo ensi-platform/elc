@@ -56,27 +56,26 @@ variables:                                      # глобальные пере�
   HOME_PATH: ${WORKSPACE_PATH}/home
 
 templates:                                      # шаблоны сервисов
-  fpm-8.1:                                      # название шаблона
-    path: ${WORKSPACE_PATH}/templates/fpm-8.1   # путь до папки шаблона
+  fpm-8.5:                                      # название шаблона
+    path: ${WORKSPACE_PATH}/templates/fpm-8.5   # путь до папки шаблона
     compose_file: ${TPL_PATH}/docker-compose.yml
     hooks:
       after_clone: ${TPL_PATH}/hooks/after-clone.sh
       worktree_create: ${TPL_PATH}/hooks/after-worktree.sh
       worktree_remove: ${TPL_PATH}/hooks/before-worktree-remove.sh
     variables:                                  # переменные шаблона
-      APP_IMAGE: fpm-8.1:latest
-      BASE_IMAGE: php:8.1-fpm-alpine
-      NGINX_IMAGE: nginx:1.19-alpine
+      BASE_IMAGE: php:8.5-fpm-alpine
+      NGINX_IMAGE: nginx:1.28-alpine
 
 services:                                       # список сервисов
   proxy:                                        # название сервиса
     path: ${WORKSPACE_PATH}/infra/proxy         # путь до папки сервиса (корень git репозитория)
     variables:
-      APP_IMAGE: jwilder/nginx-proxy:latest
+      APP_IMAGE: nginxproxy/nginx-proxy:1.11-alpine
 
   app1:
     path: ${APPS_ROOT}/app1
-    extends: fpm-8.1                            # использование шаблона
+    extends: fpm-8.5                            # использование шаблона
     repository: git@github.com:example/app1.git
     tags:
       - frontend
@@ -87,7 +86,7 @@ services:                                       # список сервисов
     compose_file: ${SVC_PATH}/docker-compose.yml
     tags:
       - backend
-    extends: fpm-8.1
+    extends: fpm-8.5
 
   configs:                                      # host-only: без запуска контейнеров
     path: ${WORKSPACE_PATH}/configs
@@ -189,8 +188,10 @@ elc launch -c app1 -b feature/foo --source=HEAD code .
 ```
 
 Команды `start`, `stop`, `exec` и остальные определяют инстанс по текущей папке.
+Работают и worktree, созданные не через elc: компонент находится по пути основного
+репозитория (`git rev-parse`), ветка — по текущему HEAD.
 Если вы не в папке worktree, укажите ветку флагом `--branch` / `-b`.
-Отсутствующий worktree для существующей ветки создаётся автоматически.
+Отсутствующий worktree для существующей ветки создаётся автоматически (только по схеме `$WORKTREES_PATH/...`).
 Новую git-ветку можно создать только с `--source=<branch|HEAD>`.
 `elc launch` запускает программу на хосте в папке инстанса.
 

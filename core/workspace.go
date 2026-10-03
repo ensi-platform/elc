@@ -18,10 +18,11 @@ type Workspace struct {
 	Context    *Context
 	Components map[string]*Component
 
-	cwdResolved bool
-	cwdCompName string
-	cwdBranch   string
-	cwdMatchErr error
+	cwdResolved     bool
+	cwdCompName     string
+	cwdBranch       string
+	cwdWorktreePath string
+	cwdMatchErr     error
 }
 
 func NewWorkspace(wsPath string, cwd string) *Workspace {
@@ -160,9 +161,10 @@ func (ws *Workspace) MatchCwd() (string, string, error) {
 	}
 	ws.cwdResolved = true
 
-	if name, branch, ok := ws.detectWorktreeFromCwd(); ok {
+	if name, branch, dest, ok := ws.detectWorktreeFromCwd(); ok {
 		ws.cwdCompName = name
 		ws.cwdBranch = branch
+		ws.cwdWorktreePath = dest
 		return name, branch, nil
 	}
 
@@ -186,22 +188,35 @@ func (ws *Workspace) MatchCwd() (string, string, error) {
 	return bestName, "", nil
 }
 
-func (ws *Workspace) detectWorktreeFromCwd() (string, string, bool) {
+// CwdWorktreePath returns the worktree root detected from CWD, if any.
+func (ws *Workspace) CwdWorktreePath() string {
+	_, _, _ = ws.MatchCwd()
+	return ws.cwdWorktreePath
+}
+
+func (ws *Workspace) detectWorktreeFromCwd() (string, string, string, bool) {
+	if name, branch, dest, ok := ws.detectWorktreeFromPath(); ok {
+		return name, branch, dest, true
+	}
+	return ws.detectWorktreeFromGit()
+}
+
+func (ws *Workspace) detectWorktreeFromPath() (string, string, string, bool) {
 	root := WorktreesRoot(ws)
 	if !isInside(ws.Cwd, root) {
-		return "", "", false
+		return "", "", "", false
 	}
 
 	rel := strings.TrimPrefix(pathPrefix(ws.Cwd), pathPrefix(root))
 	rel = strings.Trim(rel, "/")
 	if rel == "" {
-		return "", "", false
+		return "", "", "", false
 	}
 
 	parts := strings.Split(rel, "/")
 	compName := parts[0]
 	if _, err := ws.ComponentByName(compName); err != nil {
-		return "", "", false
+		return "", "", "", false
 	}
 
 	current := ws.Cwd
@@ -210,9 +225,9 @@ func (ws *Workspace) detectWorktreeFromCwd() (string, string, bool) {
 		if Pc.FileExists(path.Join(current, ".git")) {
 			branch := strings.TrimPrefix(path.Clean(current), path.Clean(compRoot)+"/")
 			if branch != "" && ValidateBranchName(branch) == nil {
-				return compName, branch, true
+				return compName, branch, current, true
 			}
-			return "", "", false
+			return "", "", "", false
 		}
 		next := path.Dir(current)
 		if next == current {
@@ -221,7 +236,71 @@ func (ws *Workspace) detectWorktreeFromCwd() (string, string, bool) {
 		current = next
 	}
 
-	return "", "", false
+	return "", "", "", false
+}
+
+func (ws *Workspace) detectWorktreeFromGit() (string, string, string, bool) {
+	// CWD inside a main component checkout is never a foreign linked worktree.
+	for _, comp := range ws.Components {
+		svcPath, found := comp.Context.find("SVC_PATH")
+		if found && svcPath != "" && isInside(ws.Cwd, svcPath) {
+			return "", "", "", false
+		}
+	}
+
+	if _, ok := findLinkedWorktreeRoot(ws.Cwd); !ok {
+		return "", "", "", false
+	}
+	info, ok := inspectGitWorktree(ws.Cwd)
+	if !ok || !info.Linked {
+		return "", "", "", false
+	}
+	if ValidateBranchName(info.Branch) != nil {
+		return "", "", "", false
+	}
+	compName, ok := ws.componentNameByMainPath(info.MainPath)
+	if !ok {
+		return "", "", "", false
+	}
+	return compName, info.Branch, info.TopLevel, true
+}
+
+func findLinkedWorktreeRoot(cwd string) (string, bool) {
+	current := cwd
+	for current != "" {
+		gitPath := path.Join(current, ".git")
+		data, err := Pc.ReadFile(gitPath)
+		if err == nil {
+			if strings.HasPrefix(strings.TrimSpace(string(data)), "gitdir:") {
+				return current, true
+			}
+			return "", false
+		}
+		if Pc.FileExists(gitPath) {
+			// Exists but not a readable file → regular .git directory (main clone).
+			return "", false
+		}
+		next := path.Dir(current)
+		if next == current {
+			break
+		}
+		current = next
+	}
+	return "", false
+}
+
+func (ws *Workspace) componentNameByMainPath(mainPath string) (string, bool) {
+	mainPath = path.Clean(mainPath)
+	for name, comp := range ws.Components {
+		svcPath, found := comp.Context.find("SVC_PATH")
+		if !found || svcPath == "" {
+			continue
+		}
+		if path.Clean(svcPath) == mainPath {
+			return name, true
+		}
+	}
+	return "", false
 }
 
 func (ws *Workspace) GetComponentNames() []string {

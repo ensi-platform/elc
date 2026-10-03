@@ -40,6 +40,7 @@ func resolveComponents(ws *core.Workspace, options *core.GlobalOptions, namesFro
 	}
 
 	cwdName, cwdBranch, _ := ws.MatchCwd()
+	cwdWorktreePath := ws.CwdWorktreePath()
 
 	result := make([]*core.Component, 0, len(compNames))
 	for _, compName := range compNames {
@@ -54,7 +55,13 @@ func resolveComponents(ws *core.Workspace, options *core.GlobalOptions, namesFro
 		}
 
 		if branch != "" {
-			instance, err := comp.ForWorktree(branch)
+			useCwdPath := cwdWorktreePath != "" && branch == cwdBranch && cwdName == comp.Name
+			var instance *core.Component
+			if useCwdPath {
+				instance, err = comp.ForWorktreeAt(branch, cwdWorktreePath)
+			} else {
+				instance, err = comp.ForWorktree(branch)
+			}
 			if err != nil {
 				return nil, err
 			}
@@ -63,6 +70,9 @@ func resolveComponents(ws *core.Workspace, options *core.GlobalOptions, namesFro
 				return nil, err
 			}
 			if !cloned {
+				if useCwdPath {
+					return nil, errors.New(fmt.Sprintf("worktree path %s does not exist", cwdWorktreePath))
+				}
 				instance, err = comp.EnsureWorktree(options, branch, false)
 				if err != nil {
 					return nil, err

@@ -1,0 +1,20 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+# Swoole runs interpreted PHP — air only watches files and restarts the process.
+cmd = "true"
+bin = "./run.sh"
+entrypoint = ["./run.sh"]
+include_ext = ["php"]
+exclude_dir = ["tmp", "vendor"]
+delay = 1000
+# Needed for reliable reload with Docker bind mounts (especially Docker Desktop).
+poll = true
+poll_interval = 500
+
+[log]
+time = false
+
+[misc]
+clean_on_exit = true

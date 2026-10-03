@@ -2,6 +2,8 @@ package core
 
 import (
 	"testing"
+
+	"github.com/golang/mock/gomock"
 )
 
 func TestSanitizeInstanceName(t *testing.T) {
@@ -70,5 +72,52 @@ func TestResolveWorktreeStartPoint(t *testing.T) {
 	got, err = resolveWorktreeStartPoint("/repo", "head", nil)
 	if err != nil || got != "HEAD" {
 		t.Fatalf("head: got %q err %v", got, err)
+	}
+}
+
+func TestInspectGitWorktreeLinked(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockPc := NewMockPC(ctrl)
+	Pc = mockPc
+
+	cwd := "/tmp/external/feat-wt/src"
+	top := "/tmp/external/feat-wt"
+	main := "/tmp/workspaces/project1/apps/test"
+
+	mockPc.EXPECT().ExecToString([]string{"git", "-C", cwd, "rev-parse", "--show-toplevel"}, nil).
+		Return(0, top+"\n", nil)
+	mockPc.EXPECT().ExecToString([]string{"git", "-C", cwd, "rev-parse", "--git-common-dir"}, nil).
+		Return(0, main+"/.git\n", nil)
+	mockPc.EXPECT().ExecToString([]string{"git", "-C", cwd, "rev-parse", "--abbrev-ref", "HEAD"}, nil).
+		Return(0, "feat\n", nil)
+
+	info, ok := inspectGitWorktree(cwd)
+	if !ok || !info.Linked {
+		t.Fatalf("expected linked worktree, got %+v ok=%v", info, ok)
+	}
+	if info.TopLevel != top || info.MainPath != main || info.Branch != "feat" {
+		t.Fatalf("unexpected info: %+v", info)
+	}
+}
+
+func TestInspectGitWorktreeMainClone(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockPc := NewMockPC(ctrl)
+	Pc = mockPc
+
+	main := "/tmp/workspaces/project1/apps/test"
+	mockPc.EXPECT().ExecToString([]string{"git", "-C", main, "rev-parse", "--show-toplevel"}, nil).
+		Return(0, main+"\n", nil)
+	mockPc.EXPECT().ExecToString([]string{"git", "-C", main, "rev-parse", "--git-common-dir"}, nil).
+		Return(0, ".git\n", nil)
+
+	info, ok := inspectGitWorktree(main)
+	if !ok || info.Linked {
+		t.Fatalf("expected main clone, got %+v ok=%v", info, ok)
+	}
+	if info.MainPath != main || info.TopLevel != main {
+		t.Fatalf("unexpected info: %+v", info)
 	}
 }

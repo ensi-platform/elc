@@ -1,0 +1,25 @@
+services:
+  app:
+    image: $APP_IMAGE
+    build:
+      context: $TPL_PATH
+    hostname: "$APP_NAME.$BASE_DOMAIN"
+    working_dir: /var/www
+    # Image entrypoint is air; app code (incl. .air.toml) is bind-mounted from host.
+    command: ["-c", ".air.toml"]
+    environment:
+      APP_PORT: "$APP_PORT"
+      VIRTUAL_HOST: "$APP_NAME.$BASE_DOMAIN"
+      VIRTUAL_PORT: "$APP_PORT"
+      HOME: /tmp/home
+      air_wd: /var/www
+    volumes:
+      - "$SVC_PATH:/var/www"
+      - "$HOME_PATH:/tmp/home"
+    networks:
+      - dev
+
+networks:
+  dev:
+    external: true
+    name: $NETWORK
