@@ -67,6 +67,7 @@ func InitCobra() *cobra.Command {
 	NewServiceRunCommand(rootCmd)
 	NewServiceSetHooksCommand(rootCmd)
 	NewServiceCloneCommand(rootCmd)
+	NewServiceRunHookCommand(rootCmd)
 	NewServiceListCommand(rootCmd)
 	NewWorktreeCommand(rootCmd)
 
@@ -361,6 +362,24 @@ func NewServiceCloneCommand(parentCommand *cobra.Command) {
 	}
 
 	command.Flags().BoolVar(&noHook, "no-hook", false, "do not execute hook script after cloning")
+	parentCommand.AddCommand(command)
+}
+
+func NewServiceRunHookCommand(parentCommand *cobra.Command) {
+	var command = &cobra.Command{
+		Use:     "run-hook [HOOK] [-- ARGS...]",
+		Aliases: []string{"rh"},
+		Short:   "Run a component hook from workspace.yaml",
+		Long:    "Run a named component hook defined in workspace.yaml (hooks.after_clone, hooks.worktree_create, hooks.worktree_remove).\nBy default uses the component found with current directory.\nArguments after -- are passed to the hook script.",
+		Args:    cobra.ArbitraryArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return cmd.Help()
+			}
+			return actions.RunHookAction(&globalOptions, args[0], args[1:])
+		},
+	}
+	command.Flags().SetInterspersed(false)
 	parentCommand.AddCommand(command)
 }
 

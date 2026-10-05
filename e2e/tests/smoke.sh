@@ -72,6 +72,12 @@ assert_contains "${clone_out}" "after_clone:" "clone should run after_clone hook
 assert_file_exists "${WS_PATH}/apps/cloneable/README" "clone should create cloneable component"
 assert_file_exists "${WS_PATH}/home/.elc-after-clone-cloneable" "after_clone hook should create marker"
 
+echo "==> run-hook after_clone"
+rm -f "${WS_PATH}/home/.elc-after-clone-cloneable"
+run_hook_out="$("${ELC[@]}" --component=cloneable run-hook after_clone)"
+assert_contains "${run_hook_out}" "after_clone:" "run-hook should execute after_clone hook"
+assert_file_exists "${WS_PATH}/home/.elc-after-clone-cloneable" "run-hook after_clone should recreate marker"
+
 echo "==> worktree add / list / remove (+ hooks)"
 wt_add_out="$("${ELC[@]}" --component=go-api worktree add "${WT_BRANCH}" --source=HEAD -- --env=staging)"
 assert_contains "${wt_add_out}" "worktree_create:" "worktree add should run worktree_create hook"

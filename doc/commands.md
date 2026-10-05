@@ -78,6 +78,28 @@ elc clone MY_SERVICE
 elc clone --tag=frontend
 ```
 
+## run-hook
+```
+elc run-hook <HOOK> [-- ARGS...]
+elc rh <HOOK> [-- ARGS...]
+```
+Запустить именованный хук компонента из `workspace.yaml`
+(`hooks.after_clone`, `hooks.worktree_create`, `hooks.worktree_remove`).
+
+Алиас: `rh`.
+
+Компонент берётся из текущей директории или через `-c`/`--component`.
+Если вы в папке worktree (или указан `--branch`), хук выполняется в контексте
+этого инстанса. Аргументы после `--` передаются скрипту хука.
+
+Примеры:
+```
+elc run-hook after_clone
+elc rh after_clone
+elc run-hook worktree_create -- --env=staging
+elc run-hook worktree_remove -c app1 -b feature/foo
+```
+
 ## worktree
 ```
 elc worktree <BRANCH> [-- HOOK_ARGS...]

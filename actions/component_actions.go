@@ -375,6 +375,27 @@ func CloneComponentAction(options *core.GlobalOptions, svcNames []string, noHook
 	return nil
 }
 
+func RunHookAction(options *core.GlobalOptions, hookName string, hookArgs []string) error {
+	if hookName == "" {
+		return errors.New("hook name is required")
+	}
+	if options.Tag != "" {
+		return errors.New("run-hook does not support --tag")
+	}
+
+	ws, err := core.GetWorkspaceConfig(options.WorkspaceName)
+	if err != nil {
+		return err
+	}
+
+	comp, err := resolveComponent(ws, options, nil)
+	if err != nil {
+		return err
+	}
+
+	return comp.RunHook(hookName, options, hookArgs)
+}
+
 func ListServicesAction(options *core.GlobalOptions) error {
 	ws, err := core.GetWorkspaceConfig(options.WorkspaceName)
 	if err != nil {

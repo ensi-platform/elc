@@ -687,3 +687,69 @@ services:
 		t.Fatal(err)
 	}
 }
+
+const workspaceConfigWithHooks = `
+name: ensi
+services:
+  test:
+    path: "${WORKSPACE_PATH}/apps/test"
+    hooks:
+      after_clone: ${WORKSPACE_PATH}/hooks/after-clone.sh
+      worktree_create: ${WORKSPACE_PATH}/hooks/after-worktree.sh
+`
+
+func TestRunHookAfterClone(t *testing.T) {
+	mockPc := setupMockPc(t)
+	expectReadHomeConfig(mockPc)
+	expectReadWorkspaceConfig(mockPc, fakeWorkspacePath, workspaceConfigWithHooks, "")
+
+	hookPath := path.Join(fakeWorkspacePath, "hooks/after-clone.sh")
+	mockPc.EXPECT().ExecInteractive([]string{hookPath}, gomock.Any()).Return(0, nil)
+
+	err := RunHookAction(&core.GlobalOptions{}, "after_clone", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRunHookPassesArgs(t *testing.T) {
+	mockPc := setupMockPc(t)
+	expectReadHomeConfig(mockPc)
+	expectReadWorkspaceConfig(mockPc, fakeWorkspacePath, workspaceConfigWithHooks, "")
+
+	hookPath := path.Join(fakeWorkspacePath, "hooks/after-worktree.sh")
+	mockPc.EXPECT().ExecInteractive([]string{hookPath, "--env=staging"}, gomock.Any()).Return(0, nil)
+
+	err := RunHookAction(&core.GlobalOptions{}, "worktree_create", []string{"--env=staging"})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRunHookUnknownName(t *testing.T) {
+	mockPc := setupMockPc(t)
+	expectReadHomeConfig(mockPc)
+	expectReadWorkspaceConfig(mockPc, fakeWorkspacePath, workspaceConfigWithHooks, "")
+
+	err := RunHookAction(&core.GlobalOptions{}, "pre_commit", nil)
+	if err == nil {
+		t.Fatal("expected error for unknown hook")
+	}
+	if !strings.Contains(err.Error(), "unknown hook") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestRunHookUndefined(t *testing.T) {
+	mockPc := setupMockPc(t)
+	expectReadHomeConfig(mockPc)
+	expectReadWorkspaceConfig(mockPc, fakeWorkspacePath, workspaceConfigWithHooks, "")
+
+	err := RunHookAction(&core.GlobalOptions{}, "worktree_remove", nil)
+	if err == nil {
+		t.Fatal("expected error for undefined hook")
+	}
+	if !strings.Contains(err.Error(), "hooks.worktree_remove is not defined") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}

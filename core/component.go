@@ -530,6 +530,42 @@ func (comp *Component) getAfterCloneHook() string {
 	return ""
 }
 
+func (comp *Component) hookByName(name string) (hook string, configKey string, err error) {
+	switch name {
+	case "after_clone":
+		return comp.getAfterCloneHook(), "hooks.after_clone", nil
+	case "worktree_create":
+		return comp.getWorktreeCreateHook(), "hooks.worktree_create", nil
+	case "worktree_remove":
+		return comp.getWorktreeRemoveHook(), "hooks.worktree_remove", nil
+	default:
+		return "", "", errors.New(fmt.Sprintf("unknown hook %q; available: after_clone, worktree_create, worktree_remove", name))
+	}
+}
+
+// RunHook executes a named component hook from workspace.yaml (hooks.*).
+func (comp *Component) RunHook(name string, options *GlobalOptions, hookArgs []string) error {
+	hook, configKey, err := comp.hookByName(name)
+	if err != nil {
+		return err
+	}
+	if hook == "" {
+		return errors.New(fmt.Sprintf("%s is not defined for component %s", configKey, comp.Name))
+	}
+
+	hook, err = comp.Context.RenderString(hook)
+	if err != nil {
+		return err
+	}
+	if hook == "" {
+		return errors.New(fmt.Sprintf("%s resolved to empty string for component %s", configKey, comp.Name))
+	}
+
+	command := append([]string{hook}, hookArgs...)
+	_, err = comp.execInteractive(command, options)
+	return err
+}
+
 func (comp *Component) Clone(options *GlobalOptions, noHook bool) error {
 	cloned, err := comp.IsCloned()
 	if err != nil {
