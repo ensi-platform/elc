@@ -13,6 +13,11 @@ func (ctx *Context) find(name string) (string, bool) {
 	return "", false
 }
 
+// Find returns a context variable by name.
+func (ctx *Context) Find(name string) (string, bool) {
+	return ctx.find(name)
+}
+
 func (ctx Context) remove(name string) Context {
 	index := -1
 	for i, pair := range ctx {

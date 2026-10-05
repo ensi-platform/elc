@@ -8,6 +8,25 @@
 - `--branch=BRANCH`, `-b BRANCH` - работать с worktree-инстансом указанной ветки вместо основного clone компонента
 - `--source=REF` - создать отсутствующую git-ветку от указанного ref (`branch` или `HEAD`); нужен вместе с `-b` / командой `worktree` 
 
+## Автодополнение
+
+Cobra уже включает команду `completion`. После установки скрипта shell будет подсказывать
+команды, флаги и где возможно аргументы (сервисы, workspaces, теги, хуки, compose-подкоманды,
+git-ветки, worktree-ветки).
+
+```bash
+# zsh
+elc completion zsh > "${fpath[1]}/_elc"
+# или для текущей сессии:
+source <(elc completion zsh)
+
+# bash
+elc completion bash > /etc/bash_completion.d/elc
+
+# fish
+elc completion fish > ~/.config/fish/completions/elc.fish
+```
+
 ## Параметры выбора сервиса
 
 Многие команды позволяют указать один или несколько сервисов.  

@@ -23,6 +23,16 @@ func CheckAndLoadHC() (*HomeConfig, error) {
 }
 
 func GetWorkspaceConfig(wsName string) (*Workspace, error) {
+	return loadWorkspaceConfig(wsName, true)
+}
+
+// LoadWorkspaceConfigForCompletion loads workspace config without the elc version gate.
+// Used by shell completion where binary may be unversioned (local go build).
+func LoadWorkspaceConfigForCompletion(wsName string) (*Workspace, error) {
+	return loadWorkspaceConfig(wsName, false)
+}
+
+func loadWorkspaceConfig(wsName string, checkVer bool) (*Workspace, error) {
 	hc, err := CheckAndLoadHC()
 	if err != nil {
 		return nil, err
@@ -44,9 +54,11 @@ func GetWorkspaceConfig(wsName string) (*Workspace, error) {
 		return nil, err
 	}
 
-	err = ws.checkVersion()
-	if err != nil {
-		return nil, err
+	if checkVer {
+		err = ws.checkVersion()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err = ws.init()

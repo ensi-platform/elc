@@ -71,6 +71,8 @@ func InitCobra() *cobra.Command {
 	NewServiceListCommand(rootCmd)
 	NewWorktreeCommand(rootCmd)
 
+	registerGlobalFlagCompletions(rootCmd)
+
 	return rootCmd
 }
 
@@ -103,10 +105,11 @@ func NewWorkspaceListCommand(parentCommand *cobra.Command) {
 
 func NewWorkspaceAddCommand(parentCommand *cobra.Command) {
 	var command = &cobra.Command{
-		Use:   "add [NAME] [PATH]",
-		Short: "Register new workspace",
-		Long:  "Register new workspace.",
-		Args:  cobra.ExactArgs(2),
+		Use:               "add [NAME] [PATH]",
+		Short:             "Register new workspace",
+		Long:              "Register new workspace.",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completeWorkspaceAddArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 			wsPath := args[1]
@@ -119,10 +122,11 @@ func NewWorkspaceAddCommand(parentCommand *cobra.Command) {
 
 func NewWorkspaceRemoveCommand(parentCommand *cobra.Command) {
 	var command = &cobra.Command{
-		Use:   "remove [NAME]",
-		Short: "Remove workspace from ~/.elc.yaml",
-		Long:  "Remove workspace from ~/.elc.yaml.",
-		Args:  cobra.ExactArgs(1),
+		Use:               "remove [NAME]",
+		Short:             "Remove workspace from ~/.elc.yaml",
+		Long:              "Remove workspace from ~/.elc.yaml.",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completeWorkspaceNamesArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
@@ -147,10 +151,11 @@ func NewWorkspaceShowCommand(parentCommand *cobra.Command) {
 
 func NewWorkspaceSelectCommand(parentCommand *cobra.Command) {
 	var command = &cobra.Command{
-		Use:   "select [NAME]",
-		Short: "Set current workspace",
-		Long:  "Set workspace with name NAME as current.",
-		Args:  cobra.ExactArgs(1),
+		Use:               "select [NAME]",
+		Short:             "Set current workspace",
+		Long:              "Set workspace with name NAME as current.",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completeWorkspaceSelectArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 			return actions.SelectWorkspaceAction(name)
@@ -161,10 +166,11 @@ func NewWorkspaceSelectCommand(parentCommand *cobra.Command) {
 
 func NewWorkspaceSetRootCommand(parentCommand *cobra.Command) {
 	var command = &cobra.Command{
-		Use:   "set-root [NAME] [PATH]",
-		Short: "Set root path for workspace",
-		Long:  "Set root path for workspace.",
-		Args:  cobra.ExactArgs(2),
+		Use:               "set-root [NAME] [PATH]",
+		Short:             "Set root path for workspace",
+		Long:              "Set root path for workspace.",
+		Args:              cobra.ExactArgs(2),
+		ValidArgsFunction: completeWorkspaceSetRootArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return actions.SetRootPathAction(args[0], args[1])
 		},
@@ -174,25 +180,28 @@ func NewWorkspaceSetRootCommand(parentCommand *cobra.Command) {
 
 func NewServiceStartCommand(parentCommand *cobra.Command) {
 	var command = &cobra.Command{
-		Use:   "start [OPTIONS] [NAME]",
-		Short: "Start one or more services",
-		Long:  "Start one or more services.\nBy default starts service found with current directory, but you can pass one or more service names instead.",
-		Args:  cobra.ArbitraryArgs,
+		Use:               "start [OPTIONS] [NAME]",
+		Short:             "Start one or more services",
+		Long:              "Start one or more services.\nBy default starts service found with current directory, but you can pass one or more service names instead.",
+		Args:              cobra.ArbitraryArgs,
+		ValidArgsFunction: completeComponentArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return actions.StartServiceAction(&globalOptions, args)
 		},
 	}
 	parseStartFlags(command)
+	registerModeFlagCompletion(command)
 	parentCommand.AddCommand(command)
 }
 
 func NewServiceStopCommand(parentCommand *cobra.Command) {
 	var stopAll bool
 	var command = &cobra.Command{
-		Use:   "stop [OPTIONS] [NAME]",
-		Short: "Stop one or more services",
-		Long:  "Stop one or more services.\nBy default stops service found with current directory, but you can pass one or more service names instead.",
-		Args:  cobra.ArbitraryArgs,
+		Use:               "stop [OPTIONS] [NAME]",
+		Short:             "Stop one or more services",
+		Long:              "Stop one or more services.\nBy default stops service found with current directory, but you can pass one or more service names instead.",
+		Args:              cobra.ArbitraryArgs,
+		ValidArgsFunction: completeComponentArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return actions.StopServiceAction(stopAll, args, false, &globalOptions)
 		},
@@ -204,10 +213,11 @@ func NewServiceStopCommand(parentCommand *cobra.Command) {
 func NewServiceDestroyCommand(parentCommand *cobra.Command) {
 	var destroyAll bool
 	var command = &cobra.Command{
-		Use:   "destroy [OPTIONS] [NAME]",
-		Short: "Stop and remove containers of one or more services",
-		Long:  "Stop and remove containers of one or more services.\nBy default destroys service found with current directory, but you can pass one or more service names instead.",
-		Args:  cobra.ArbitraryArgs,
+		Use:               "destroy [OPTIONS] [NAME]",
+		Short:             "Stop and remove containers of one or more services",
+		Long:              "Stop and remove containers of one or more services.\nBy default destroys service found with current directory, but you can pass one or more service names instead.",
+		Args:              cobra.ArbitraryArgs,
+		ValidArgsFunction: completeComponentArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return actions.StopServiceAction(destroyAll, args, true, &globalOptions)
 		},
@@ -219,10 +229,11 @@ func NewServiceDestroyCommand(parentCommand *cobra.Command) {
 func NewServiceRestartCommand(parentCommand *cobra.Command) {
 	var hardRestart bool
 	var command = &cobra.Command{
-		Use:   "restart [OPTIONS] [NAME]",
-		Short: "Restart one or more services",
-		Long:  "Restart one or more services.\nBy default restart service found with current directory, but you can pass one or more service names instead.",
-		Args:  cobra.ArbitraryArgs,
+		Use:               "restart [OPTIONS] [NAME]",
+		Short:             "Restart one or more services",
+		Long:              "Restart one or more services.\nBy default restart service found with current directory, but you can pass one or more service names instead.",
+		Args:              cobra.ArbitraryArgs,
+		ValidArgsFunction: completeComponentArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return actions.RestartServiceAction(hardRestart, args, &globalOptions)
 		},
@@ -233,10 +244,11 @@ func NewServiceRestartCommand(parentCommand *cobra.Command) {
 
 func NewServiceVarsCommand(parentCommand *cobra.Command) {
 	var command = &cobra.Command{
-		Use:   "vars [NAME]",
-		Short: "Print all variables computed for service",
-		Long:  "Print all variables computed for service.\nBy default uses service found with current directory, but you can pass name of another service instead.",
-		Args:  cobra.ArbitraryArgs,
+		Use:               "vars [NAME]",
+		Short:             "Print all variables computed for service",
+		Long:              "Print all variables computed for service.\nBy default uses service found with current directory, but you can pass name of another service instead.",
+		Args:              cobra.ArbitraryArgs,
+		ValidArgsFunction: completeComponentArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return actions.PrintVarsAction(&globalOptions, args)
 		},
@@ -246,10 +258,11 @@ func NewServiceVarsCommand(parentCommand *cobra.Command) {
 
 func NewServiceComposeCommand(parentCommand *cobra.Command) {
 	var command = &cobra.Command{
-		Use:   "compose [OPTIONS] [COMMAND]",
-		Short: "Run docker-compose command",
-		Long:  "Run docker-compose command.\nBy default uses service found with current directory.",
-		Args:  cobra.MinimumNArgs(0),
+		Use:               "compose [OPTIONS] [COMMAND]",
+		Short:             "Run docker-compose command",
+		Long:              "Run docker-compose command.\nBy default uses service found with current directory.",
+		Args:              cobra.MinimumNArgs(0),
+		ValidArgsFunction: completeComposeArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return cmd.Help()
@@ -310,6 +323,7 @@ func NewServiceExecCommand(parentCommand *cobra.Command) {
 	command.Flags().SetInterspersed(false)
 	parseStartFlags(command)
 	parseExecFlags(command)
+	registerModeFlagCompletion(command)
 	parentCommand.AddCommand(command)
 }
 func NewServiceRunCommand(parentCommand *cobra.Command) {
@@ -335,10 +349,11 @@ func NewServiceRunCommand(parentCommand *cobra.Command) {
 func NewServiceSetHooksCommand(parentCommand *cobra.Command) {
 	var native bool
 	var command = &cobra.Command{
-		Use:   "set-hooks [HOOKS_DIR]",
-		Short: "Install hooks from specified folder to .git/hooks",
-		Long:  "Install hooks from specified folder to .git/hooks.\nHOOKS_PATH must contain subdirectories with names as git hooks, eg. 'pre-commit'.\nOne subdirectory can contain one or many scripts with .sh extension.\nEvery script will be wrapped with 'elc --tag=hook' command.\nWith --native, sets git core.hooksPath to HOOKS_DIR instead of generating wrappers in .git/hooks.",
-		Args:  cobra.MinimumNArgs(1),
+		Use:               "set-hooks [HOOKS_DIR]",
+		Short:             "Install hooks from specified folder to .git/hooks",
+		Long:              "Install hooks from specified folder to .git/hooks.\nHOOKS_PATH must contain subdirectories with names as git hooks, eg. 'pre-commit'.\nOne subdirectory can contain one or many scripts with .sh extension.\nEvery script will be wrapped with 'elc --tag=hook' command.\nWith --native, sets git core.hooksPath to HOOKS_DIR instead of generating wrappers in .git/hooks.",
+		Args:              cobra.MinimumNArgs(1),
+		ValidArgsFunction: completeDirectoryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return actions.SetGitHooksAction(&globalOptions, args[0], os.Args[0], native)
 		},
@@ -350,12 +365,13 @@ func NewServiceSetHooksCommand(parentCommand *cobra.Command) {
 func NewServiceCloneCommand(parentCommand *cobra.Command) {
 	var noHook bool
 	var command = &cobra.Command{
-		Use:           "clone [NAME]",
-		Short:         "Clone component to its path",
-		Long:          "Clone component to its path.",
-		SilenceUsage:  false,
-		SilenceErrors: false,
-		Args:          cobra.ArbitraryArgs,
+		Use:               "clone [NAME]",
+		Short:             "Clone component to its path",
+		Long:              "Clone component to its path.",
+		SilenceUsage:      false,
+		SilenceErrors:     false,
+		Args:              cobra.ArbitraryArgs,
+		ValidArgsFunction: completeComponentArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return actions.CloneComponentAction(&globalOptions, args, noHook)
 		},
@@ -367,11 +383,12 @@ func NewServiceCloneCommand(parentCommand *cobra.Command) {
 
 func NewServiceRunHookCommand(parentCommand *cobra.Command) {
 	var command = &cobra.Command{
-		Use:     "run-hook [HOOK] [-- ARGS...]",
-		Aliases: []string{"rh"},
-		Short:   "Run a component hook from workspace.yaml",
-		Long:    "Run a named component hook defined in workspace.yaml (hooks.after_clone, hooks.worktree_create, hooks.worktree_remove).\nBy default uses the component found with current directory.\nArguments after -- are passed to the hook script.",
-		Args:    cobra.ArbitraryArgs,
+		Use:               "run-hook [HOOK] [-- ARGS...]",
+		Aliases:           []string{"rh"},
+		Short:             "Run a component hook from workspace.yaml",
+		Long:              "Run a named component hook defined in workspace.yaml (hooks.after_clone, hooks.worktree_create, hooks.worktree_remove).\nBy default uses the component found with current directory.\nArguments after -- are passed to the hook script.",
+		Args:              cobra.ArbitraryArgs,
+		ValidArgsFunction: completeHookNames,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return cmd.Help()
@@ -385,10 +402,11 @@ func NewServiceRunHookCommand(parentCommand *cobra.Command) {
 
 func NewServiceListCommand(parentCommand *cobra.Command) {
 	var command = &cobra.Command{
-		Use:   "list [OPTIONS]",
-		Short: "Show list of services",
-		Long:  "Show list of services.\nCan be used in scripts for loops.",
-		Args:  cobra.ArbitraryArgs,
+		Use:               "list [OPTIONS]",
+		Short:             "Show list of services",
+		Long:              "Show list of services.\nCan be used in scripts for loops.",
+		Args:              cobra.ArbitraryArgs,
+		ValidArgsFunction: completeNoFile,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return actions.ListServicesAction(&globalOptions)
 		},
@@ -399,11 +417,12 @@ func NewServiceListCommand(parentCommand *cobra.Command) {
 func NewWorktreeCommand(parentCommand *cobra.Command) {
 	var noHook bool
 	var command = &cobra.Command{
-		Use:     "worktree [branch]",
-		Aliases: []string{"wt"},
-		Short:   "Create a git worktree instance of a component",
-		Long:    "Create a git worktree of the current or selected component at $WORKTREES_PATH/<component>/<branch>.\nFetches remotes and creates a local tracking branch when the branch exists only on origin.\nIf the branch does not exist anywhere, fails unless --source=<branch|HEAD> is set.\nAfter creation, optional hooks.worktree_create is executed.\nArguments after -- are passed to the hook script.",
-		Args:    cobra.ArbitraryArgs,
+		Use:               "worktree [branch]",
+		Aliases:           []string{"wt"},
+		Short:             "Create a git worktree instance of a component",
+		Long:              "Create a git worktree of the current or selected component at $WORKTREES_PATH/<component>/<branch>.\nFetches remotes and creates a local tracking branch when the branch exists only on origin.\nIf the branch does not exist anywhere, fails unless --source=<branch|HEAD> is set.\nAfter creation, optional hooks.worktree_create is executed.\nArguments after -- are passed to the hook script.",
+		Args:              cobra.ArbitraryArgs,
+		ValidArgsFunction: completeGitBranchArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return cmd.Help()
@@ -420,10 +439,11 @@ func NewWorktreeCommand(parentCommand *cobra.Command) {
 
 func NewWorktreeAddCommand(parentCommand *cobra.Command, noHook *bool) {
 	var command = &cobra.Command{
-		Use:   "add [branch]",
-		Short: "Create a git worktree instance of a component",
-		Long:  "Create a git worktree of the current or selected component at $WORKTREES_PATH/<component>/<branch>.\nArguments after -- are passed to hooks.worktree_create.",
-		Args:  cobra.ArbitraryArgs,
+		Use:               "add [branch]",
+		Short:             "Create a git worktree instance of a component",
+		Long:              "Create a git worktree of the current or selected component at $WORKTREES_PATH/<component>/<branch>.\nArguments after -- are passed to hooks.worktree_create.",
+		Args:              cobra.ArbitraryArgs,
+		ValidArgsFunction: completeGitBranchArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return cmd.Help()
@@ -437,11 +457,12 @@ func NewWorktreeAddCommand(parentCommand *cobra.Command, noHook *bool) {
 
 func NewWorktreeListCommand(parentCommand *cobra.Command) {
 	var command = &cobra.Command{
-		Use:     "list",
-		Aliases: []string{"ls"},
-		Short:   "List component worktree instances",
-		Long:    "List worktrees under $WORKTREES_PATH.\nOutput lines: <component>\\t<branch>\\t<path>.\nUse -c/--component to filter by component.",
-		Args:    cobra.NoArgs,
+		Use:               "list",
+		Aliases:           []string{"ls"},
+		Short:             "List component worktree instances",
+		Long:              "List worktrees under $WORKTREES_PATH.\nOutput lines: <component>\\t<branch>\\t<path>.\nUse -c/--component to filter by component.",
+		Args:              cobra.NoArgs,
+		ValidArgsFunction: completeNoFile,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return actions.ListWorktreesAction(&globalOptions)
 		},
@@ -453,11 +474,12 @@ func NewWorktreeRemoveCommand(parentCommand *cobra.Command) {
 	var force bool
 	var noHook bool
 	var command = &cobra.Command{
-		Use:     "remove [branch]",
-		Aliases: []string{"rm"},
-		Short:   "Remove a component worktree instance",
-		Long:    "Run optional hooks.worktree_remove, destroy containers, and remove the git worktree.\nBranch can be taken from the current directory, argument, or --branch.",
-		Args:    cobra.MaximumNArgs(1),
+		Use:               "remove [branch]",
+		Aliases:           []string{"rm"},
+		Short:             "Remove a component worktree instance",
+		Long:              "Run optional hooks.worktree_remove, destroy containers, and remove the git worktree.\nBranch can be taken from the current directory, argument, or --branch.",
+		Args:              cobra.MaximumNArgs(1),
+		ValidArgsFunction: completeWorktreeRemoveArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			branch := ""
 			if len(args) > 0 {

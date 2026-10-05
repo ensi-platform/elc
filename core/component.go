@@ -530,6 +530,10 @@ func (comp *Component) getAfterCloneHook() string {
 	return ""
 }
 
+func ComponentHookNames() []string {
+	return []string{"after_clone", "worktree_create", "worktree_remove"}
+}
+
 func (comp *Component) hookByName(name string) (hook string, configKey string, err error) {
 	switch name {
 	case "after_clone":
@@ -539,7 +543,7 @@ func (comp *Component) hookByName(name string) (hook string, configKey string, e
 	case "worktree_remove":
 		return comp.getWorktreeRemoveHook(), "hooks.worktree_remove", nil
 	default:
-		return "", "", errors.New(fmt.Sprintf("unknown hook %q; available: after_clone, worktree_create, worktree_remove", name))
+		return "", "", errors.New(fmt.Sprintf("unknown hook %q; available: %s", name, strings.Join(ComponentHookNames(), ", ")))
 	}
 }
 
